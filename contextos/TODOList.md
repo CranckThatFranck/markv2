@@ -34,9 +34,10 @@
 - Criar `src/backend/models/router.py`.
 - Criar `src/backend/models/registry.py`.
 - Criar `src/backend/models/fallback.py`.
+- Criar `src/backend/models/providers/google_ai_client.py`.
 
 ## Fazendo
-- Criar `src/backend/models/providers/google_ai_client.py`.
+- Criar `src/backend/models/providers/vertex_ai_client.py`.
 
 ## A fazer
 
@@ -53,7 +54,6 @@
 - Criar `src/backend/protocol/schemas.py`.
 - Criar `src/backend/protocol/actions.py`.
 - Criar `src/backend/protocol/events.py`.
-- Criar `src/backend/models/providers/google_ai_client.py`.
 - Criar `src/backend/models/providers/vertex_ai_client.py`.
 - Criar `src/backend/models/credentials/key_manager.py`.
 - Criar `src/backend/models/credentials/vertex_credentials.py`.
