@@ -89,6 +89,97 @@ async def _handle_action(websocket: WebSocket, envelope: InputEnvelope) -> None:
         )
         return
 
+    if action == ActionName.GET_MODELS.value:
+        await websocket.send_json(
+            success_response(
+                action,
+                {
+                    "models": _build_models_payload(),
+                    "active_model": state_manager.state.model,
+                    "active_provider": state_manager.state.provider,
+                },
+            ).model_dump()
+        )
+        return
+
+    if action == ActionName.GET_PROVIDERS.value:
+        await websocket.send_json(
+            success_response(
+                action,
+                {
+                    "providers": provider_store.to_sync_providers_payload(),
+                    "active_model": state_manager.state.model,
+                },
+            ).model_dump()
+        )
+        return
+
+    if action == ActionName.GET_CREDENTIALS_STATUS.value:
+        await websocket.send_json(
+            success_response(
+                action,
+                {
+                    "credentials_status": provider_store.get_credentials_status(),
+                    "active_provider": provider_store.get_active_provider(),
+                },
+            ).model_dump()
+        )
+        return
+
+    if action == ActionName.CHANGE_MODEL.value:
+        model_id = envelope.payload.get("model_id")
+        if not isinstance(model_id, str) or not model_id.strip():
+            await websocket.send_json(
+                error_response(action=action, error_code="INVALID_PAYLOAD", message="model_id é obrigatório.").model_dump()
+            )
+            return
+
+        model_id = model_id.strip()
+        if not model_registry.is_valid_model(model_id):
+            await websocket.send_json(
+                error_response(action=action, error_code="MODEL_NOT_FOUND", message="Modelo desconhecido.").model_dump()
+            )
+            return
+
+        provider = model_registry.resolve_provider(model_id)
+        state_manager.set_model_and_provider(model_id, provider)
+        provider_store.set_active_provider(provider)
+        await websocket.send_json(
+            success_response(action, {"model_id": model_id, "provider": provider}).model_dump()
+        )
+        await _send_sync_state(websocket)
+        return
+
+    if action == ActionName.CHANGE_PROVIDER.value:
+        provider = envelope.payload.get("provider")
+        if not isinstance(provider, str) or not provider.strip():
+            await websocket.send_json(
+                error_response(action=action, error_code="INVALID_PAYLOAD", message="provider é obrigatório.").model_dump()
+            )
+            return
+
+        provider = provider.strip()
+        if provider not in {"google_ai", "vertex_ai"}:
+            await websocket.send_json(
+                error_response(action=action, error_code="PROVIDER_NOT_FOUND", message="Provider desconhecido.").model_dump()
+            )
+            return
+
+        default_model = model_registry.default_model_for_provider(provider)
+        if default_model is None:
+            await websocket.send_json(
+                error_response(action=action, error_code="MODEL_NOT_FOUND", message="Nenhum modelo disponivel para o provider.").model_dump()
+            )
+            return
+
+        state_manager.set_model_and_provider(default_model, provider)
+        provider_store.set_active_provider(provider)
+        await websocket.send_json(
+            success_response(action, {"provider": provider, "model_id": default_model}).model_dump()
+        )
+        await _send_sync_state(websocket)
+        return
+
     if action == ActionName.GET_HISTORY.value:
         await websocket.send_json(
             success_response(action, {"items": history_store.list_events(limit=100)}).model_dump()

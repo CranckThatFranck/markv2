@@ -35,6 +35,11 @@
 - Implementar ação `healthcheck`.
 - Implementar ação `get_status`.
 - Implementar ação `get_config`.
+- Implementar ação `get_models`.
+- Implementar ação `get_providers`.
+- Implementar ação `get_credentials_status`.
+- Implementar ação `change_model`.
+- Implementar ação `change_provider`.
 - Implementar ação `get_history`.
 - Implementar ação `clear_session`.
 - Validar que payload inválido gera erro estruturado.
@@ -98,11 +103,6 @@
 
 ### Protocolo JSON/WebSocket v2
 - Implementar ação `update_config`.
-- Implementar ação `get_models`.
-- Implementar ação `get_providers`.
-- Implementar ação `change_model`.
-- Implementar ação `change_provider`.
-- Implementar ação `get_credentials_status`.
 - Implementar ação `set_active_credential`.
 - Implementar ação `add_custom_model`.
 - Implementar ação `remove_custom_model`.

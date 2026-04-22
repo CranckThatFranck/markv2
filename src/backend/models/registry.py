@@ -66,6 +66,17 @@ class ModelRegistry:
     def list_all(self) -> list[str]:
         return sorted({*self._builtin.keys(), *self._custom.keys()})
 
+    def list_models_by_provider(self, provider: str) -> list[str]:
+        models = [model_id for model_id, entry in {**self._builtin, **self._custom}.items() if entry.provider == provider]
+        return sorted(models)
+
+    def default_model_for_provider(self, provider: str) -> str | None:
+        candidates = [entry for entry in {**self._builtin, **self._custom}.values() if entry.provider == provider and entry.enabled]
+        if not candidates:
+            return None
+        candidates.sort(key=lambda entry: (entry.priority, entry.model_id))
+        return candidates[0].model_id
+
     def resolve_provider(self, model_id: str) -> str:
         entry = self.get_entry(model_id)
         if entry is None:
