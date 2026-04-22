@@ -42,8 +42,8 @@ What is already working locally:
 - asyncio-oriented backend flow
 - SQLite for structured history/session-related persistence
 - JSON files for lightweight runtime state
-- Google AI API integration path for `google_ai`
-- Vertex AI integration path for `vertex_ai`
+- Real Google AI API client for `google_ai`
+- Real Vertex AI client for `vertex_ai`
 
 ## Repository Layout
 
@@ -175,6 +175,34 @@ The WebSocket currently emits `sync_state` on connect and handles these actions:
 - `shutdown_backend`
 
 Remaining work now sits in the later tooling and provider integration layers.
+
+## Provider Execution Path
+
+The `execute_task` action now uses the active `provider` and `model` from backend state and routes execution through the real provider clients:
+
+- `google_ai` via `src/backend/models/providers/google_ai_client.py`
+- `vertex_ai` via `src/backend/models/providers/vertex_ai_client.py`
+
+Routing is resolved through:
+
+- `src/backend/models/registry.py` for builtin/custom catalog and model metadata
+- `src/backend/models/router.py` for `model_id -> provider`
+
+Credential resolution behavior:
+
+- `google_ai`: active credential from runtime store, fallback to `GOOGLE_API_KEY`
+- `vertex_ai`: active credential from runtime store, fallback to `GOOGLE_APPLICATION_CREDENTIALS` + `VERTEXAI_PROJECT` + `VERTEXAI_LOCATION`
+
+`change_provider` now fails with structured error when the target provider has no configured credential.
+
+Provider failures are normalized and surfaced as structured protocol errors, including at least:
+
+- `AUTHENTICATION_FAILED`
+- `RATE_LIMIT`
+- `QUOTA_EXCEEDED`
+- `PROJECT_INVALID`
+- `REGION_INVALID`
+- `MODEL_NOT_FOUND`
 
 ## Working Notes
 

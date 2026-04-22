@@ -102,6 +102,36 @@
 - Implementar subida do WebSocket principal.
 - Validar reconexão com reidratação de histórico.
 - Validar persistência de sessão entre reinícios do backend.
+- Implementar o registry unificado de modelos builtin.
+- Implementar a distinção explícita entre provider, modelo e credencial.
+- Declarar catálogo inicial de modelos Google AI API.
+- Declarar catálogo inicial de modelos Vertex AI.
+- Implementar mapeamento de `model_id -> provider`.
+- Implementar lookup por provider.
+- Implementar validação de model id.
+- Implementar suporte a modelos customizados permitidos pela política.
+- Persistir modelos customizados.
+- Expor catálogo de modelos builtin, custom e total no protocolo.
+- Validar que o backend resolve corretamente o provider a partir do model id.
+- Implementar `google_ai_client.py`.
+- Implementar leitura da credencial `GOOGLE_API_KEY`.
+- Implementar chamada básica ao Gemini via Google AI API.
+- Implementar tratamento de erro de autenticação Google AI API.
+- Implementar tratamento de rate limit Google AI API.
+- Implementar tratamento de quota excedida Google AI API.
+- Implementar retorno normalizado para o agent loop.
+- Validar erro claro quando `GOOGLE_API_KEY` estiver ausente ou inválida.
+- Implementar `vertex_ai_client.py`.
+- Implementar leitura de `GOOGLE_APPLICATION_CREDENTIALS`.
+- Implementar leitura de `VERTEXAI_PROJECT`.
+- Implementar leitura de `VERTEXAI_LOCATION`.
+- Implementar chamada básica ao modelo via Vertex AI.
+- Implementar tratamento de erro de autenticação Vertex AI.
+- Implementar tratamento de erro de projeto inválido no Vertex AI.
+- Implementar tratamento de erro de região inválida no Vertex AI.
+- Implementar tratamento de indisponibilidade de modelo no Vertex AI.
+- Implementar retorno normalizado para o agent loop.
+- Validar erro claro quando credenciais ou região estiverem incorretas.
 
 ## A fazer
 
@@ -119,42 +149,12 @@
 - Validar que alterar `initial_rules.txt` e reiniciar o serviço altera o comportamento esperado do backend.
 
 ### Registry de modelos e providers
-- Implementar o registry unificado de modelos builtin.
-- Implementar a distinção explícita entre provider, modelo e credencial.
-- Declarar catálogo inicial de modelos Google AI API.
-- Declarar catálogo inicial de modelos Vertex AI.
-- Implementar mapeamento de `model_id -> provider`.
-- Implementar lookup por provider.
-- Implementar validação de model id.
-- Implementar suporte a modelos customizados permitidos pela política.
-- Persistir modelos customizados.
-- Expor catálogo de modelos builtin, custom e total no protocolo.
-- Validar que o backend resolve corretamente o provider a partir do model id.
 
 ### Provider Google AI API
-- Implementar `google_ai_client.py`.
-- Implementar leitura da credencial `GOOGLE_API_KEY`.
-- Implementar chamada básica ao Gemini via Google AI API.
-- Implementar tratamento de erro de autenticação Google AI API.
-- Implementar tratamento de rate limit Google AI API.
-- Implementar tratamento de quota excedida Google AI API.
-- Implementar retorno normalizado para o agent loop.
 - Validar uma pergunta simples via Google AI API.
-- Validar erro claro quando `GOOGLE_API_KEY` estiver ausente ou inválida.
 
 ### Provider Vertex AI
-- Implementar `vertex_ai_client.py`.
-- Implementar leitura de `GOOGLE_APPLICATION_CREDENTIALS`.
-- Implementar leitura de `VERTEXAI_PROJECT`.
-- Implementar leitura de `VERTEXAI_LOCATION`.
-- Implementar chamada básica ao modelo via Vertex AI.
-- Implementar tratamento de erro de autenticação Vertex AI.
-- Implementar tratamento de erro de projeto inválido no Vertex AI.
-- Implementar tratamento de erro de região inválida no Vertex AI.
-- Implementar tratamento de indisponibilidade de modelo no Vertex AI.
-- Implementar retorno normalizado para o agent loop.
 - Validar uma pergunta simples via Vertex AI.
-- Validar erro claro quando credenciais ou região estiverem incorretas.
 
 ### Credenciais, rotação e estado seguro
 - Implementar `key_manager.py` para credenciais do provider `google_ai`.
