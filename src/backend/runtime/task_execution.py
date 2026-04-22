@@ -9,7 +9,11 @@ from typing import Awaitable, Callable
 
 from fastapi import WebSocket
 
+from src.backend.models.providers.google_ai_client import GoogleAIClient
+from src.backend.models.providers.vertex_ai_client import VertexAIClient
+from src.backend.models.router import ModelRouter
 from src.backend.protocol.schemas import error_response, success_response
+from src.backend.runtime.credentials import CredentialRuntime
 from src.backend.runtime.rules import build_rules_runtime
 from src.backend.session.history_store import HistoryStore
 from src.backend.session.session_store import SessionStore
@@ -21,16 +25,27 @@ class TaskContext:
     task_id: str
     prompt: str
     rules_text: str
+    provider: str
+    model_id: str
     cancelled: bool = False
 
 
 class TaskExecutionService:
     """Mantem uma task ativa por vez e emite eventos coerentes no WebSocket."""
 
-    def __init__(self, state_manager: StateManager, history_store: HistoryStore, session_store: SessionStore) -> None:
+    def __init__(
+        self,
+        state_manager: StateManager,
+        history_store: HistoryStore,
+        session_store: SessionStore,
+        credential_runtime: CredentialRuntime,
+        model_router: ModelRouter,
+    ) -> None:
         self.state_manager = state_manager
         self.history_store = history_store
         self.session_store = session_store
+        self.credential_runtime = credential_runtime
+        self.model_router = model_router
         self.rules_runtime = build_rules_runtime()
         self._active_context: TaskContext | None = None
         self._active_task: asyncio.Task[None] | None = None
@@ -51,6 +66,38 @@ class TaskExecutionService:
     def is_running(self) -> bool:
         return self._active_task is not None and not self._active_task.done()
 
+    def _validate_provider_ready(self, provider: str) -> bool:
+        status = self.credential_runtime.get_credentials_status().get(provider, {})
+        return bool(status.get("configured"))
+
+    async def _execute_with_provider(self, provider: str, model_id: str, prompt: str) -> tuple[bool, str, str]:
+        if provider == "google_ai":
+            google_api_key = self.credential_runtime.get_google_api_key()
+            result = await asyncio.to_thread(
+                GoogleAIClient(api_key=google_api_key).generate_text,
+                prompt,
+                model_id,
+            )
+        elif provider == "vertex_ai":
+            active_vertex = self.credential_runtime.get_vertex_active_credential()
+            if not active_vertex:
+                return False, "AUTHENTICATION_FAILED", "Credenciais Vertex AI ausentes."
+            result = await asyncio.to_thread(
+                VertexAIClient(
+                    credentials_path=active_vertex["service_account_path"],
+                    project=active_vertex["project"],
+                    location=active_vertex["location"],
+                ).generate_text,
+                prompt,
+                model_id,
+            )
+        else:
+            return False, "PROVIDER_NOT_FOUND", "Provider desconhecido."
+
+        if result.ok:
+            return True, "OK", result.text or ""
+        return False, result.error_code or "PROVIDER_ERROR", result.message or "Falha no provider."
+
     async def execute_task(
         self,
         websocket: WebSocket,
@@ -64,8 +111,25 @@ class TaskExecutionService:
                 message="Ja existe uma task em execucao.",
             ).model_dump()
 
+        model_id = self.state_manager.state.model
+        provider = self.model_router.resolve_provider(model_id, self.state_manager.state.provider)
+        if not self._validate_provider_ready(provider):
+            return error_response(
+                action="execute_task",
+                error_code="CREDENTIAL_NOT_CONFIGURED",
+                message=f"Provider {provider} sem credencial configurada.",
+            ).model_dump()
+
+        self.state_manager.set_model_and_provider(model_id, provider)
+
         task_id = f"task-{uuid.uuid4().hex[:12]}"
-        self._active_context = TaskContext(task_id=task_id, prompt=prompt, rules_text=self.rules_text)
+        self._active_context = TaskContext(
+            task_id=task_id,
+            prompt=prompt,
+            rules_text=self.rules_text,
+            provider=provider,
+            model_id=model_id,
+        )
         self.state_manager.set_active_task(task_id)
         self.state_manager.set_status("running")
         self.state_manager.bump_history_revision()
@@ -115,7 +179,34 @@ class TaskExecutionService:
                 if self._active_context is None or self._active_context.cancelled:
                     return
 
-                final_message = f"Task concluida com prompt: {prompt.strip()}"
+                ok, code, output = await self._execute_with_provider(provider, model_id, prompt)
+                if not ok:
+                    self.history_store.append_event(task_id, "system", f"Provider error {code}: {output}")
+                    await websocket.send_json(
+                        error_response(
+                            action="execute_task",
+                            error_code=code,
+                            message=output,
+                        ).model_dump()
+                    )
+                    await websocket.send_json(
+                        {
+                            "type": "status",
+                            "protocol_version": "2.0",
+                            "phase": "END",
+                            "action": "execute_task",
+                            "task_id": task_id,
+                        }
+                    )
+                    self.state_manager.set_status("idle")
+                    self.state_manager.set_active_task(None)
+                    self.state_manager.bump_history_revision()
+                    self.history_store.bump_history_revision()
+                    self.session_store.set_idle_session(self.state_manager.state.history_revision, last_task_id=task_id)
+                    await emit_state()
+                    return
+
+                final_message = output
                 self.history_store.append_event(task_id, "message", final_message)
                 self.state_manager.set_status("idle")
                 self.state_manager.set_active_task(None)
@@ -158,6 +249,8 @@ class TaskExecutionService:
                 "task_id": task_id,
                 "status": "running",
                 "rules_file": self.rules_file,
+                "provider": provider,
+                "model_id": model_id,
             },
         ).model_dump()
 

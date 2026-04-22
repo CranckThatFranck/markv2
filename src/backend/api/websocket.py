@@ -7,6 +7,7 @@ import json
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from src.backend.models.registry import ModelRegistry
+from src.backend.models.router import ModelRouter
 from src.backend.protocol.actions import ActionName, is_valid_action
 from src.backend.protocol.schemas import (
     InputEnvelope,
@@ -28,11 +29,14 @@ state_manager = StateManager(base_dir=_runtime_layout.runtime_dir)
 session_store = SessionStore(base_dir=_runtime_layout.runtime_dir)
 history_store = HistoryStore(base_dir=_runtime_layout.runtime_dir)
 model_registry = ModelRegistry(base_dir=_runtime_layout.runtime_dir)
+model_router = ModelRouter(registry=model_registry)
 credential_runtime = CredentialRuntime.create(base_dir=_runtime_layout.runtime_dir)
 task_service = TaskExecutionService(
     state_manager=state_manager,
     history_store=history_store,
     session_store=session_store,
+    credential_runtime=credential_runtime,
+    model_router=model_router,
 )
 
 
@@ -298,7 +302,7 @@ async def _handle_action(websocket: WebSocket, envelope: InputEnvelope) -> None:
             )
             return
 
-        provider = model_registry.resolve_provider(model_id)
+        provider = model_router.resolve_provider(model_id, state_manager.state.provider)
         state_manager.set_model_and_provider(model_id, provider)
         credential_runtime.provider_store.set_active_provider(provider)
         await websocket.send_json(
@@ -319,6 +323,17 @@ async def _handle_action(websocket: WebSocket, envelope: InputEnvelope) -> None:
         if provider not in {"google_ai", "vertex_ai"}:
             await websocket.send_json(
                 error_response(action=action, error_code="PROVIDER_NOT_FOUND", message="Provider desconhecido.").model_dump()
+            )
+            return
+
+        provider_status = credential_runtime.get_credentials_status().get(provider, {})
+        if not provider_status.get("configured"):
+            await websocket.send_json(
+                error_response(
+                    action=action,
+                    error_code="CREDENTIAL_NOT_CONFIGURED",
+                    message=f"Provider {provider} sem credencial configurada.",
+                ).model_dump()
             )
             return
 

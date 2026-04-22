@@ -5,10 +5,15 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
+from google.api_core import exceptions as gax_exceptions
+import google.generativeai as genai
+
 
 @dataclass(slots=True)
 class GoogleAIResult:
     ok: bool
+    provider: str = "google_ai"
+    model_id: str | None = None
     text: str | None = None
     error_code: str | None = None
     message: str | None = None
@@ -25,25 +30,60 @@ class GoogleAIClient:
             raise ValueError("CREDENTIAL_NOT_CONFIGURED")
 
     def generate_text(self, prompt: str, model_id: str = "gemini/gemini-2.5-flash") -> GoogleAIResult:
-        """Chamada basica normalizada.
-
-        Nesta fase inicial, a integracao real com SDK sera plugada depois do bootstrap completo.
-        """
+        """Executa chamada real no Google AI API e normaliza a resposta."""
 
         try:
             self.validate_credentials()
         except ValueError:
             return GoogleAIResult(
                 ok=False,
+                model_id=model_id,
                 error_code="AUTHENTICATION_FAILED",
                 message="GOOGLE_API_KEY ausente ou invalida.",
             )
 
-        text = f"[google_ai:{model_id}] resposta simulada para: {prompt.strip()}"
-        return GoogleAIResult(ok=True, text=text)
+        try:
+            genai.configure(api_key=self.api_key)
+            upstream_model = model_id.split("/", 1)[-1]
+            model = genai.GenerativeModel(model_name=upstream_model)
+            response = model.generate_content(prompt)
 
-    def map_provider_error(self, raw_error: str) -> GoogleAIResult:
-        lowered = raw_error.lower()
+            text = getattr(response, "text", None)
+            if not text and getattr(response, "candidates", None):
+                parts = response.candidates[0].content.parts if response.candidates[0].content else []
+                text = "".join(getattr(part, "text", "") for part in parts).strip()
+            if not text:
+                text = "Resposta vazia do provider Google AI API."
+
+            return GoogleAIResult(ok=True, model_id=model_id, text=text)
+        except Exception as exc:  # pragma: no cover - depende de erro externo do provider
+            mapped = self.map_provider_error(exc)
+            mapped.model_id = model_id
+            return mapped
+
+    def map_provider_error(self, raw_error: Exception) -> GoogleAIResult:
+        lowered = str(raw_error).lower()
+
+        if isinstance(raw_error, (gax_exceptions.Unauthenticated, gax_exceptions.PermissionDenied)):
+            return GoogleAIResult(
+                ok=False,
+                error_code="AUTHENTICATION_FAILED",
+                message="Falha de autenticacao no Google AI API.",
+            )
+        if isinstance(raw_error, gax_exceptions.ResourceExhausted):
+            if "quota" in lowered:
+                return GoogleAIResult(
+                    ok=False,
+                    error_code="QUOTA_EXCEEDED",
+                    message="Quota excedida no Google AI API.",
+                )
+            return GoogleAIResult(ok=False, error_code="RATE_LIMIT", message="Rate limit do Google AI API.")
+        if isinstance(raw_error, gax_exceptions.NotFound):
+            return GoogleAIResult(
+                ok=False,
+                error_code="MODEL_NOT_FOUND",
+                message="Modelo indisponivel no Google AI API.",
+            )
         if "rate" in lowered or "429" in lowered:
             return GoogleAIResult(ok=False, error_code="RATE_LIMIT", message="Rate limit do Google AI API.")
         if "quota" in lowered:
@@ -54,4 +94,10 @@ class GoogleAIClient:
                 error_code="AUTHENTICATION_FAILED",
                 message="Falha de autenticacao no Google AI API.",
             )
-        return GoogleAIResult(ok=False, error_code="PROVIDER_ERROR", message=raw_error)
+        if "model" in lowered and "not" in lowered:
+            return GoogleAIResult(
+                ok=False,
+                error_code="MODEL_NOT_FOUND",
+                message="Modelo indisponivel no Google AI API.",
+            )
+        return GoogleAIResult(ok=False, error_code="PROVIDER_ERROR", message=str(raw_error))
