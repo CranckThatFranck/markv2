@@ -33,8 +33,13 @@ class ModelRegistry:
 
     def _build_builtin_catalog(self) -> dict[str, ModelEntry]:
         entries = [
+            ModelEntry(model_id="gemini/gemini-3-flash-preview", provider="google_ai", priority=5),
+            ModelEntry(model_id="gemini/gemini-3.1-pro-preview", provider="google_ai", priority=8),
+            ModelEntry(model_id="gemini/gemini-3.1-pro-preview-customtools", provider="google_ai", priority=9),
             ModelEntry(model_id="gemini/gemini-2.5-flash", provider="google_ai", priority=10),
             ModelEntry(model_id="gemini/gemini-2.5-pro", provider="google_ai", priority=20),
+            ModelEntry(model_id="vertex_ai/gemini-3.1-pro-preview", provider="vertex_ai", priority=8),
+            ModelEntry(model_id="vertex_ai/gemini-3.1-pro-preview-customtools", provider="vertex_ai", priority=9),
             ModelEntry(model_id="vertex_ai/gemini-2.5-flash", provider="vertex_ai", priority=10),
             ModelEntry(model_id="vertex_ai/gemini-2.5-pro", provider="vertex_ai", priority=20),
         ]

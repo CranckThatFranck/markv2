@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass, asdict
 from pathlib import Path
 
@@ -71,14 +72,30 @@ class VertexCredentialsManager:
         for cred in self._credentials.values():
             if cred.active:
                 return cred
+        env_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+        env_project = os.getenv("VERTEXAI_PROJECT")
+        env_location = os.getenv("VERTEXAI_LOCATION")
+        if env_path and env_project and env_location:
+            return VertexCredential(
+                credential_id="env:VERTEXAI",
+                service_account_path=env_path,
+                project=env_project,
+                location=env_location,
+                active=True,
+            )
         return None
 
     def get_safe_status(self) -> dict[str, object]:
         active = self.get_active()
+        env_configured = bool(
+            os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+            and os.getenv("VERTEXAI_PROJECT")
+            and os.getenv("VERTEXAI_LOCATION")
+        )
         return {
-            "configured": bool(self._credentials),
+            "configured": bool(self._credentials) or env_configured,
             "active_credential_id": active.credential_id if active else None,
-            "credential_count": len(self._credentials),
+            "credential_count": len(self._credentials) + (1 if env_configured else 0),
         }
 
     @property

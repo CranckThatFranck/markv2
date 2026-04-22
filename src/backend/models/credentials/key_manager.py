@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass, asdict
 from pathlib import Path
 
@@ -63,14 +64,16 @@ class KeyManager:
         for cred in self._credentials.values():
             if cred.active:
                 return cred.api_key
-        return None
+        env_key = os.getenv("GOOGLE_API_KEY")
+        return env_key if env_key else None
 
     def get_safe_status(self) -> dict[str, object]:
         active = next((c.credential_id for c in self._credentials.values() if c.active), None)
+        env_key_present = bool(os.getenv("GOOGLE_API_KEY"))
         return {
-            "configured": bool(self._credentials),
-            "active_credential_id": active,
-            "credential_count": len(self._credentials),
+            "configured": bool(self._credentials) or env_key_present,
+            "active_credential_id": active or ("env:GOOGLE_API_KEY" if env_key_present else None),
+            "credential_count": len(self._credentials) + (1 if env_key_present else 0),
         }
 
     @property

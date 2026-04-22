@@ -55,3 +55,19 @@ class CredentialRuntime:
             raise ValueError("PROVIDER_NOT_FOUND")
         self.refresh_status()
         return self.provider_store.get_credentials_status()[provider]
+
+    def get_google_api_key(self) -> str | None:
+        self.refresh_status()
+        return self.key_manager.get_active_api_key()
+
+    def get_vertex_active_credential(self) -> dict[str, str] | None:
+        self.refresh_status()
+        active = self.vertex_manager.get_active()
+        if active is None:
+            return None
+        return {
+            "credential_id": active.credential_id,
+            "service_account_path": active.service_account_path,
+            "project": active.project,
+            "location": active.location,
+        }
