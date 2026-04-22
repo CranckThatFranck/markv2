@@ -44,9 +44,10 @@
 - Criar `src/backend/tools/shell_tool.py`.
 - Criar `src/backend/tools/python_tool.py`.
 - Criar `src/backend/tools/file_tool.py`.
+- Criar `src/backend/tools/system_tool.py`.
 
 ## Fazendo
-- Criar `src/backend/tools/system_tool.py`.
+- Criar `src/backend/tools/ssh_tool.py`.
 
 ## A fazer
 
