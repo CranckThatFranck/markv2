@@ -64,9 +64,10 @@
 - Implementar endpoint de healthcheck HTTP.
 - Implementar subida do WebSocket principal.
 - Implementar o `state_manager` do novo backend.
+- Implementar persistência do estado atual do backend.
 
 ## Fazendo
-- Implementar persistência do estado atual do backend.
+- Implementar `session_store` da sessão ativa.
 
 ## A fazer
 
