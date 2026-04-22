@@ -27,6 +27,15 @@
 - Criar `src/backend/session/state_manager.py`.
 - Criar `src/backend/session/session_store.py`.
 - Criar `src/backend/session/history_store.py`.
+- Implementar o `state_manager` do novo backend.
+- Implementar persistência do estado atual do backend.
+- Implementar `session_store` da sessão ativa.
+- Implementar `history_store` do histórico da sessão.
+- Persistir estado em `config.json`.
+- Persistir sessão em `session.json`.
+- Persistir dados mais estruturados em SQLite quando aplicável.
+- Implementar `history_revision`.
+- Implementar `sync_state` com estado, catálogo de modelos, providers, credenciais seguras e histórico.
 - Criar `src/backend/agent/engine.py`.
 - Criar `src/backend/agent/planner.py`.
 - Criar `src/backend/agent/prompts.py`.
@@ -63,12 +72,6 @@
 - Implementar o bootstrap FastAPI/Uvicorn em `src/backend/main.py`.
 - Implementar endpoint de healthcheck HTTP.
 - Implementar subida do WebSocket principal.
-- Implementar o `state_manager` do novo backend.
-- Implementar persistência do estado atual do backend.
-- Implementar `session_store` da sessão ativa.
-- Persistir sessão em `session.json`.
-- Implementar `history_store` do histórico da sessão.
-- Persistir estado em `config.json`.
 
 ## A fazer
 
