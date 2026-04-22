@@ -52,9 +52,10 @@
 - Criar `src/backend/execution/task_runner.py`.
 - Criar `src/backend/storage/db.py`.
 - Criar `src/backend/storage/config_store.py`.
+- Criar `src/backend/storage/rules_store.py`.
 
 ## Fazendo
-- Criar `src/backend/storage/rules_store.py`.
+- Criar `src/backend/storage/provider_store.py`.
 
 ## A fazer
 
