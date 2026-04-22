@@ -28,9 +28,10 @@
 - Criar `src/backend/session/session_store.py`.
 - Criar `src/backend/session/history_store.py`.
 - Criar `src/backend/agent/engine.py`.
+- Criar `src/backend/agent/planner.py`.
 
 ## Fazendo
-- Criar `src/backend/agent/planner.py`.
+- Criar `src/backend/agent/prompts.py`.
 
 ## A fazer
 
@@ -47,7 +48,6 @@
 - Criar `src/backend/protocol/schemas.py`.
 - Criar `src/backend/protocol/actions.py`.
 - Criar `src/backend/protocol/events.py`.
-- Criar `src/backend/agent/planner.py`.
 - Criar `src/backend/agent/prompts.py`.
 - Criar `src/backend/agent/tool_router.py`.
 - Criar `src/backend/models/router.py`.
