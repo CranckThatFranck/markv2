@@ -66,9 +66,10 @@
 - Implementar o `state_manager` do novo backend.
 - Implementar persistência do estado atual do backend.
 - Implementar `session_store` da sessão ativa.
+- Implementar `history_store` do histórico da sessão.
 
 ## Fazendo
-- Implementar `history_store` do histórico da sessão.
+- Persistir estado em `config.json`.
 
 ## A fazer
 
