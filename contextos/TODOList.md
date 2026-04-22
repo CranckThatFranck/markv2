@@ -67,9 +67,10 @@
 - Implementar persistência do estado atual do backend.
 - Implementar `session_store` da sessão ativa.
 - Implementar `history_store` do histórico da sessão.
+- Persistir estado em `config.json`.
 
 ## Fazendo
-- Persistir estado em `config.json`.
+- Persistir sessão em `session.json`.
 
 ## A fazer
 
