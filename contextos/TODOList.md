@@ -42,9 +42,10 @@
 - Criar `src/backend/models/policies/provider_policy.py`.
 - Criar `src/backend/models/policies/model_policy.py`.
 - Criar `src/backend/tools/shell_tool.py`.
+- Criar `src/backend/tools/python_tool.py`.
 
 ## Fazendo
-- Criar `src/backend/tools/python_tool.py`.
+- Criar `src/backend/tools/file_tool.py`.
 
 ## A fazer
 
