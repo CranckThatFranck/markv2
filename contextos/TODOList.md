@@ -27,6 +27,11 @@
 - Criar `src/backend/session/state_manager.py`.
 - Criar `src/backend/session/session_store.py`.
 - Criar `src/backend/session/history_store.py`.
+- Implementar schema base do protocolo JSON do Mark Core v2.
+- Implementar envelope de entrada com `protocol_version`, `action` e `payload`.
+- Implementar envelope de saída com `action_response`.
+- Implementar tipos de evento `sync_state`, `status`, `system`, `user`, `message`, `code`, `console` e `provider_event`.
+- Implementar respostas de erro estruturadas com `error_code` e `message`.
 - Implementar o `state_manager` do novo backend.
 - Implementar persistência do estado atual do backend.
 - Implementar `session_store` da sessão ativa.
@@ -84,10 +89,6 @@
 - Criar pivotagem formal do abandono do núcleo baseado em Open Interpreter como motor central do produto.
 
 ### Protocolo JSON/WebSocket v2
-- Implementar schema base do protocolo JSON do Mark Core v2.
-- Implementar envelope de entrada com `protocol_version`, `action` e `payload`.
-- Implementar envelope de saída com `action_response`.
-- Implementar tipos de evento `sync_state`, `status`, `system`, `user`, `message`, `code`, `console` e `provider_event`.
 - Implementar ação `healthcheck`.
 - Implementar ação `get_status`.
 - Implementar ação `get_config`.
@@ -105,20 +106,10 @@
 - Implementar ação `execute_task`.
 - Implementar ação `interrupt`.
 - Implementar ação `shutdown_backend`.
-- Implementar respostas de erro estruturadas com `error_code` e `message`.
 - Validar que payload inválido gera erro estruturado.
 - Validar que ação desconhecida gera erro estruturado.
 
 ### Estado, sessão e histórico
-- Implementar o `state_manager` do novo backend.
-- Implementar persistência do estado atual do backend.
-- Implementar `session_store` da sessão ativa.
-- Implementar `history_store` do histórico da sessão.
-- Persistir estado em `config.json`.
-- Persistir sessão em `session.json`.
-- Persistir dados mais estruturados em SQLite quando aplicável.
-- Implementar `history_revision`.
-- Implementar `sync_state` com estado, catálogo de modelos, providers, credenciais seguras e histórico.
 - Validar reconexão com reidratação de histórico.
 - Validar persistência de sessão entre reinícios do backend.
 
