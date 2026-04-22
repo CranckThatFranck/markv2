@@ -32,6 +32,40 @@ class SessionStore:
         with self._session_file.open("w", encoding="utf-8") as f:
             json.dump(payload, f, ensure_ascii=False, indent=2)
 
+    def set_active_session(
+        self,
+        task_id: str,
+        prompt: str,
+        rules_file: str,
+        history_revision: int,
+    ) -> None:
+        self.save(
+            {
+                "active_session": {
+                    "task_id": task_id,
+                    "prompt": prompt,
+                    "rules_file": rules_file,
+                    "history_revision": history_revision,
+                    "status": "running",
+                },
+                "metadata": {
+                    "last_task_id": task_id,
+                    "last_rules_file": rules_file,
+                },
+            }
+        )
+
+    def set_idle_session(self, history_revision: int, last_task_id: str | None = None) -> None:
+        self.save(
+            {
+                "active_session": None,
+                "metadata": {
+                    "last_task_id": last_task_id,
+                    "history_revision": history_revision,
+                },
+            }
+        )
+
     def clear(self) -> None:
         """Limpa sessao ativa mantendo o arquivo consistente."""
 

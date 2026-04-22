@@ -11,8 +11,9 @@ from fastapi import WebSocket
 
 from src.backend.protocol.schemas import error_response, success_response
 from src.backend.runtime.rules import build_rules_runtime
-from src.backend.session.state_manager import StateManager
 from src.backend.session.history_store import HistoryStore
+from src.backend.session.session_store import SessionStore
+from src.backend.session.state_manager import StateManager
 
 
 @dataclass(slots=True)
@@ -26,9 +27,10 @@ class TaskContext:
 class TaskExecutionService:
     """Mantem uma task ativa por vez e emite eventos coerentes no WebSocket."""
 
-    def __init__(self, state_manager: StateManager, history_store: HistoryStore) -> None:
+    def __init__(self, state_manager: StateManager, history_store: HistoryStore, session_store: SessionStore) -> None:
         self.state_manager = state_manager
         self.history_store = history_store
+        self.session_store = session_store
         self.rules_runtime = build_rules_runtime()
         self._active_context: TaskContext | None = None
         self._active_task: asyncio.Task[None] | None = None
@@ -67,6 +69,8 @@ class TaskExecutionService:
         self.state_manager.set_active_task(task_id)
         self.state_manager.set_status("running")
         self.state_manager.bump_history_revision()
+        self.history_store.bump_history_revision()
+        self.session_store.set_active_session(task_id, prompt, self.rules_file, self.state_manager.state.history_revision)
         self.history_store.append_event(task_id, "system", "Task iniciada")
         self.history_store.append_event(task_id, "user", prompt)
 
@@ -116,6 +120,8 @@ class TaskExecutionService:
                 self.state_manager.set_status("idle")
                 self.state_manager.set_active_task(None)
                 self.state_manager.bump_history_revision()
+                self.history_store.bump_history_revision()
+                self.session_store.set_idle_session(self.state_manager.state.history_revision, last_task_id=task_id)
                 await websocket.send_json(
                     {
                         "type": "message",
@@ -168,6 +174,8 @@ class TaskExecutionService:
         self.state_manager.set_status("idle")
         self.state_manager.set_active_task(None)
         self.state_manager.bump_history_revision()
+        self.history_store.bump_history_revision()
+        self.session_store.set_idle_session(self.state_manager.state.history_revision, last_task_id=task_id)
         self.history_store.append_event(task_id, "system", "Task interrompida")
         if self._active_task is not None:
             self._active_task.cancel()
@@ -200,6 +208,7 @@ class TaskExecutionService:
 
     async def shutdown_backend(self, websocket: WebSocket) -> dict[str, object]:
         self._shutdown_requested = True
+        last_task_id = self._active_context.task_id if self._active_context else None
         if self._active_context is not None:
             self._active_context.cancelled = True
         if self._active_task is not None:
@@ -207,6 +216,8 @@ class TaskExecutionService:
         self.state_manager.set_status("idle")
         self.state_manager.set_active_task(None)
         self.state_manager.bump_history_revision()
+        self.history_store.bump_history_revision()
+        self.session_store.set_idle_session(self.state_manager.state.history_revision, last_task_id=last_task_id)
         await websocket.send_json(
             {
                 "type": "system",
@@ -218,5 +229,34 @@ class TaskExecutionService:
             "shutdown_backend",
             {
                 "shutdown": True,
+            },
+        ).model_dump()
+
+    async def clear_session(self, websocket: WebSocket) -> dict[str, object]:
+        last_task_id = self._active_context.task_id if self._active_context else None
+        if self._active_task is not None:
+            self._active_context = None
+            self._active_task.cancel()
+            self._active_task = None
+
+        self.state_manager.set_status("idle")
+        self.state_manager.set_active_task(None)
+        new_revision = self.state_manager.bump_history_revision()
+        self.history_store.bump_history_revision()
+        self.history_store.clear()
+        self.history_store.sync_history_revision(new_revision)
+        self.session_store.set_idle_session(new_revision, last_task_id=last_task_id)
+        await websocket.send_json(
+            {
+                "type": "system",
+                "protocol_version": "2.0",
+                "message": "Sessao limpa.",
+            }
+        )
+        return success_response(
+            "clear_session",
+            {
+                "cleared": True,
+                "history_revision": new_revision,
             },
         ).model_dump()

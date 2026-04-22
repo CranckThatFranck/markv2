@@ -113,6 +113,7 @@ class StateManager:
         models: dict[str, Any] | None = None,
         credentials_status: dict[str, Any] | None = None,
         history: list[dict[str, Any]] | None = None,
+        session: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Serializa o estado no formato esperado para evento sync_state."""
 
@@ -137,4 +138,5 @@ class StateManager:
             "models": models or {"builtin": [], "custom": [], "all": []},
             "credentials_status": credentials_status or {},
             "history": history or [],
+            "session": session or {"active_session": None, "metadata": {}},
         }

@@ -92,6 +92,24 @@ class HistoryStore:
             conn.commit()
         return revision
 
+    def sync_history_revision(self, revision: int) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO history_meta (key, value)
+                VALUES ('history_revision', ?)
+                ON CONFLICT(key) DO UPDATE SET value = excluded.value
+                """,
+                (str(revision),),
+            )
+            conn.commit()
+
+    def clear(self) -> None:
+        with self._connect() as conn:
+            conn.execute("DELETE FROM history_events")
+            conn.execute("DELETE FROM history_meta")
+            conn.commit()
+
     @property
     def db_path(self) -> str:
         return str(self._db_path)

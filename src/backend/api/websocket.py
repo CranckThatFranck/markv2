@@ -29,7 +29,11 @@ session_store = SessionStore(base_dir=_runtime_layout.runtime_dir)
 history_store = HistoryStore(base_dir=_runtime_layout.runtime_dir)
 model_registry = ModelRegistry(base_dir=_runtime_layout.runtime_dir)
 credential_runtime = CredentialRuntime.create(base_dir=_runtime_layout.runtime_dir)
-task_service = TaskExecutionService(state_manager=state_manager, history_store=history_store)
+task_service = TaskExecutionService(
+    state_manager=state_manager,
+    history_store=history_store,
+    session_store=session_store,
+)
 
 
 def _build_models_payload() -> dict[str, list[str]]:
@@ -46,6 +50,7 @@ def _build_sync_state() -> dict[str, object]:
         models=_build_models_payload(),
         credentials_status=credential_runtime.get_credentials_status(),
         history=history_store.list_events(limit=50),
+        session=session_store.load(),
     )
 
 
@@ -339,9 +344,8 @@ async def _handle_action(websocket: WebSocket, envelope: InputEnvelope) -> None:
         return
 
     if action == ActionName.CLEAR_SESSION.value:
-        session_store.clear()
-        state_manager.set_active_task(None)
-        await websocket.send_json(success_response(action, {"cleared": True}).model_dump())
+        result = await task_service.clear_session(websocket)
+        await websocket.send_json(result)
         await _send_sync_state(websocket)
         return
 
