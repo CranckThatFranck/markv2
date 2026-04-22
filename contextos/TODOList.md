@@ -38,9 +38,10 @@
 - Criar `src/backend/models/providers/vertex_ai_client.py`.
 - Criar `src/backend/models/credentials/key_manager.py`.
 - Criar `src/backend/models/credentials/vertex_credentials.py`.
+- Criar `src/backend/models/credentials/provider_store.py`.
 
 ## Fazendo
-- Criar `src/backend/models/credentials/provider_store.py`.
+- Criar `src/backend/models/policies/provider_policy.py`.
 
 ## A fazer
 
