@@ -63,9 +63,10 @@
 - Implementar o bootstrap FastAPI/Uvicorn em `src/backend/main.py`.
 - Implementar endpoint de healthcheck HTTP.
 - Implementar subida do WebSocket principal.
+- Implementar o `state_manager` do novo backend.
 
 ## Fazendo
-- Implementar schema base do protocolo JSON do Mark Core v2.
+- Implementar persistência do estado atual do backend.
 
 ## A fazer
 

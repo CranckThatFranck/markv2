@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+import json
+
 
 @dataclass(slots=True)
 class RuntimePaths:
@@ -36,6 +38,39 @@ class StateManager:
     def __init__(self, base_dir: str = "/var/lib/jarvis-mark/estado") -> None:
         self._state = BackendState()
         self._base_dir = Path(base_dir)
+        self._base_dir.mkdir(parents=True, exist_ok=True)
+        self._config_file = self._base_dir / "config.json"
+        self._load_state()
+
+    def _load_state(self) -> None:
+        if not self._config_file.exists():
+            return
+        with self._config_file.open("r", encoding="utf-8") as f:
+            payload = json.load(f)
+        self._state.agent_name = payload.get("agent_name", self._state.agent_name)
+        self._state.mode = payload.get("mode", self._state.mode)
+        self._state.status = payload.get("status", self._state.status)
+        self._state.provider = payload.get("provider", self._state.provider)
+        self._state.model = payload.get("model", self._state.model)
+        self._state.active_task_id = payload.get("active_task_id")
+        self._state.history_revision = payload.get("history_revision", self._state.history_revision)
+
+    def _save_state(self) -> None:
+        with self._config_file.open("w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "agent_name": self._state.agent_name,
+                    "mode": self._state.mode,
+                    "status": self._state.status,
+                    "provider": self._state.provider,
+                    "model": self._state.model,
+                    "active_task_id": self._state.active_task_id,
+                    "history_revision": self._state.history_revision,
+                },
+                f,
+                ensure_ascii=False,
+                indent=2,
+            )
 
     @property
     def state(self) -> BackendState:
@@ -43,19 +78,24 @@ class StateManager:
 
     def set_status(self, status: str) -> None:
         self._state.status = status
+        self._save_state()
 
     def set_mode(self, mode: str) -> None:
         self._state.mode = mode
+        self._save_state()
 
     def set_model_and_provider(self, model: str, provider: str) -> None:
         self._state.model = model
         self._state.provider = provider
+        self._save_state()
 
     def set_active_task(self, task_id: str | None) -> None:
         self._state.active_task_id = task_id
+        self._save_state()
 
     def bump_history_revision(self) -> int:
         self._state.history_revision += 1
+        self._save_state()
         return self._state.history_revision
 
     def to_sync_state(
