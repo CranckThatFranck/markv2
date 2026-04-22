@@ -22,9 +22,10 @@
 - Criar `src/backend/api/health.py`.
 - Criar `src/backend/api/websocket.py`.
 - Criar `src/backend/protocol/schemas.py`.
+- Criar `src/backend/protocol/actions.py`.
 
 ## Fazendo
-- Criar `src/backend/protocol/actions.py`.
+- Criar `src/backend/protocol/events.py`.
 
 ## A fazer
 
