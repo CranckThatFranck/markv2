@@ -53,9 +53,10 @@
 - Criar `src/backend/storage/db.py`.
 - Criar `src/backend/storage/config_store.py`.
 - Criar `src/backend/storage/rules_store.py`.
+- Criar `src/backend/storage/provider_store.py`.
 
 ## Fazendo
-- Criar `src/backend/storage/provider_store.py`.
+- Criar `src/backend/security/policies.py`.
 
 ## A fazer
 
