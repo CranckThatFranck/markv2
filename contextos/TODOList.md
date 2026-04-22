@@ -21,9 +21,10 @@
 - Criar `src/backend/main.py`.
 - Criar `src/backend/api/health.py`.
 - Criar `src/backend/api/websocket.py`.
+- Criar `src/backend/protocol/schemas.py`.
 
 ## Fazendo
-- Criar `src/backend/protocol/schemas.py`.
+- Criar `src/backend/protocol/actions.py`.
 
 ## A fazer
 
