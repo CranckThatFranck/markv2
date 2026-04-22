@@ -23,9 +23,10 @@
 - Criar `src/backend/api/websocket.py`.
 - Criar `src/backend/protocol/schemas.py`.
 - Criar `src/backend/protocol/actions.py`.
+- Criar `src/backend/protocol/events.py`.
 
 ## Fazendo
-- Criar `src/backend/protocol/events.py`.
+- Criar `src/backend/session/state_manager.py`.
 
 ## A fazer
 
