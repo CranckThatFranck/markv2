@@ -58,9 +58,10 @@
 - Criar `src/backend/security/command_guard.py`.
 - Criar `src/backend/security/confirmations.py`.
 - Criar `src/backend/logging/logger.py`.
+- Criar `src/backend/logging/audit.py`.
 
 ## Fazendo
-- Criar `src/backend/logging/audit.py`.
+- Criar `src/backend/product_config/initial_rules.txt`.
 
 ## A fazer
 
