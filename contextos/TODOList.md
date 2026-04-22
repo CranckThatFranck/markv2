@@ -31,9 +31,10 @@
 - Criar `src/backend/agent/planner.py`.
 - Criar `src/backend/agent/prompts.py`.
 - Criar `src/backend/agent/tool_router.py`.
+- Criar `src/backend/models/router.py`.
 
 ## Fazendo
-- Criar `src/backend/models/router.py`.
+- Criar `src/backend/models/registry.py`.
 
 ## A fazer
 
@@ -50,7 +51,6 @@
 - Criar `src/backend/protocol/schemas.py`.
 - Criar `src/backend/protocol/actions.py`.
 - Criar `src/backend/protocol/events.py`.
-- Criar `src/backend/models/router.py`.
 - Criar `src/backend/models/registry.py`.
 - Criar `src/backend/models/fallback.py`.
 - Criar `src/backend/models/providers/google_ai_client.py`.
