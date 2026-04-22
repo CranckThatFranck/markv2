@@ -17,9 +17,10 @@
 - Definir a política de providers, modelos e credenciais do Mark Core v2.
 - Definir o guia de implementação da Fase 1 do Mark Core v2.
 - Criar a estrutura inicial de diretórios do novo backend em `src/backend`.
+- Criar `requirements-backend.txt` do Mark Core v2.
 
 ## Fazendo
-- Criar `requirements-backend.txt` do Mark Core v2.
+- Criar `src/backend/main.py`.
 
 ## A fazer
 
@@ -32,7 +33,6 @@
 - Criar pivotagem formal do abandono do núcleo baseado em Open Interpreter como motor central do produto.
 
 ### Estrutura inicial do novo backend
-- Criar `src/backend/main.py`.
 - Criar `src/backend/api/health.py`.
 - Criar `src/backend/api/websocket.py`.
 - Criar `src/backend/protocol/schemas.py`.
