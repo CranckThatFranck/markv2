@@ -50,9 +50,10 @@
 - Criar `src/backend/execution/stream_manager.py`.
 - Criar `src/backend/execution/interrupt_manager.py`.
 - Criar `src/backend/execution/task_runner.py`.
+- Criar `src/backend/storage/db.py`.
 
 ## Fazendo
-- Criar `src/backend/storage/db.py`.
+- Criar `src/backend/storage/config_store.py`.
 
 ## A fazer
 
