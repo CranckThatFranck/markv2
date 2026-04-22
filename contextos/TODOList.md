@@ -19,9 +19,10 @@
 - Criar a estrutura inicial de diretórios do novo backend em `src/backend`.
 - Criar `requirements-backend.txt` do Mark Core v2.
 - Criar `src/backend/main.py`.
+- Criar `src/backend/api/health.py`.
 
 ## Fazendo
-- Criar `src/backend/api/health.py`.
+- Criar `src/backend/api/websocket.py`.
 
 ## A fazer
 
