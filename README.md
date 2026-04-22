@@ -204,6 +204,8 @@ Provider failures are normalized and surfaced as structured protocol errors, inc
 - `REGION_INVALID`
 - `MODEL_NOT_FOUND`
 
+The current backend has been validated with real positive WebSocket `execute_task` inference for both providers using the active environment variables.
+
 ## Working Notes
 
 - The operational TODO is in `contextos/TODOList.md`.

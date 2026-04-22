@@ -102,6 +102,8 @@
 - Implementar subida do WebSocket principal.
 - Validar reconexão com reidratação de histórico.
 - Validar persistência de sessão entre reinícios do backend.
+- Validar uma pergunta simples via Google AI API.
+- Validar uma pergunta simples via Vertex AI.
 - Implementar o registry unificado de modelos builtin.
 - Implementar a distinção explícita entre provider, modelo e credencial.
 - Declarar catálogo inicial de modelos Google AI API.
@@ -151,10 +153,8 @@
 ### Registry de modelos e providers
 
 ### Provider Google AI API
-- Validar uma pergunta simples via Google AI API.
 
 ### Provider Vertex AI
-- Validar uma pergunta simples via Vertex AI.
 
 ### Credenciais, rotação e estado seguro
 - Implementar `key_manager.py` para credenciais do provider `google_ai`.
