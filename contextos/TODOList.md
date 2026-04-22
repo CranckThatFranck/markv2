@@ -20,9 +20,10 @@
 - Criar `requirements-backend.txt` do Mark Core v2.
 - Criar `src/backend/main.py`.
 - Criar `src/backend/api/health.py`.
+- Criar `src/backend/api/websocket.py`.
 
 ## Fazendo
-- Criar `src/backend/api/websocket.py`.
+- Criar `src/backend/protocol/schemas.py`.
 
 ## A fazer
 
