@@ -9,6 +9,10 @@ from typing import Awaitable, Callable
 
 from fastapi import WebSocket
 
+from src.backend.agent.engine import AgentDecision, AgentEngine
+from src.backend.agent.planner import Planner
+from src.backend.agent.tool_router import ToolRouter
+from src.backend.execution.task_runner import TaskRunner
 from src.backend.models.providers.google_ai_client import GoogleAIClient
 from src.backend.models.providers.vertex_ai_client import VertexAIClient
 from src.backend.models.router import ModelRouter
@@ -25,6 +29,7 @@ class TaskContext:
     task_id: str
     prompt: str
     rules_text: str
+    mode: str
     provider: str
     model_id: str
     cancelled: bool = False
@@ -47,9 +52,16 @@ class TaskExecutionService:
         self.credential_runtime = credential_runtime
         self.model_router = model_router
         self.rules_runtime = build_rules_runtime()
+        self.agent_engine = AgentEngine(default_mode=state_manager.state.mode, max_iterations=6)
+        self.planner = Planner()
+        self.tool_router = ToolRouter()
+        self.task_runner = TaskRunner(timeout_seconds=90)
+        self.tool_router.register_tool("shell_tool", self._shell_tool_handler)
         self._active_context: TaskContext | None = None
         self._active_task: asyncio.Task[None] | None = None
         self._shutdown_requested = False
+        self._dispatch_task_id: str | None = None
+        self._dispatch_emit_console: Callable[[str, str], Awaitable[None]] | None = None
 
     @property
     def rules_file(self) -> str:
@@ -98,6 +110,90 @@ class TaskExecutionService:
             return True, "OK", result.text or ""
         return False, result.error_code or "PROVIDER_ERROR", result.message or "Falha no provider."
 
+    async def _shell_tool_handler(self, tool_input: dict[str, object]) -> dict[str, object]:
+        command = str(tool_input.get("command", "")).strip()
+        if not command:
+            raise ValueError("COMMAND_REQUIRED")
+        if self._dispatch_task_id is None or self._dispatch_emit_console is None:
+            raise RuntimeError("TOOL_ROUTER_CONTEXT_MISSING")
+
+        result = await self.task_runner.run_command(
+            task_id=self._dispatch_task_id,
+            command=command,
+            emit_console=self._dispatch_emit_console,
+        )
+        return {
+            "ok": result.ok,
+            "exit_code": result.exit_code,
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+            "pid": result.pid,
+            "pgid": result.pgid,
+            "command": command,
+        }
+
+    async def _run_agent_loop(
+        self,
+        context: TaskContext,
+        websocket: WebSocket,
+    ) -> tuple[bool, str, str]:
+        async def emit_console(stream: str, content: str) -> None:
+            await websocket.send_json(
+                {
+                    "type": "console",
+                    "protocol_version": "2.0",
+                    "stream": stream,
+                    "content": content,
+                }
+            )
+
+        decision: AgentDecision = self.agent_engine.decide(context.prompt, context.mode)
+
+        if decision.decision == "use_tool":
+            tool_name = decision.tool_name or ""
+            tool_input = decision.tool_input or {}
+            command = str(tool_input.get("command", "")).strip()
+            await websocket.send_json(
+                {
+                    "type": "code",
+                    "protocol_version": "2.0",
+                    "content": command,
+                    "language": "bash",
+                }
+            )
+            await websocket.send_json(
+                {
+                    "type": "system",
+                    "protocol_version": "2.0",
+                    "message": f"Executando ferramenta {tool_name}.",
+                }
+            )
+
+            self._dispatch_task_id = context.task_id
+            self._dispatch_emit_console = emit_console
+            try:
+                tool_result = await self.tool_router.dispatch(tool_name, tool_input)
+            finally:
+                self._dispatch_task_id = None
+                self._dispatch_emit_console = None
+
+            if not bool(tool_result.get("ok")):
+                return (
+                    False,
+                    "TOOL_EXECUTION_FAILED",
+                    f"shell_tool falhou (exit_code={tool_result.get('exit_code')}): {tool_result.get('stderr') or 'sem detalhes'}",
+                )
+
+            stdout = str(tool_result.get("stdout", "")).strip()
+            final = stdout or "Comando executado com sucesso sem saida visivel."
+            return True, "OK", final
+
+        if decision.message == "__PLAN_RESPONSE__":
+            plan_message = self.planner.render_plan_message(context.prompt)
+            return True, "OK", plan_message
+
+        return await self._execute_with_provider(context.provider, context.model_id, context.prompt)
+
     async def execute_task(
         self,
         websocket: WebSocket,
@@ -113,12 +209,15 @@ class TaskExecutionService:
 
         model_id = self.state_manager.state.model
         provider = self.model_router.resolve_provider(model_id, self.state_manager.state.provider)
+        mode = self.state_manager.state.mode
         if not self._validate_provider_ready(provider):
-            return error_response(
-                action="execute_task",
-                error_code="CREDENTIAL_NOT_CONFIGURED",
-                message=f"Provider {provider} sem credencial configurada.",
-            ).model_dump()
+            # Apenas modo agent depende de provider para resposta direta.
+            if mode != "plan":
+                return error_response(
+                    action="execute_task",
+                    error_code="CREDENTIAL_NOT_CONFIGURED",
+                    message=f"Provider {provider} sem credencial configurada.",
+                ).model_dump()
 
         self.state_manager.set_model_and_provider(model_id, provider)
 
@@ -127,6 +226,7 @@ class TaskExecutionService:
             task_id=task_id,
             prompt=prompt,
             rules_text=self.rules_text,
+            mode=mode,
             provider=provider,
             model_id=model_id,
         )
@@ -171,15 +271,10 @@ class TaskExecutionService:
 
         async def _run() -> None:
             try:
-                for _ in range(30):
-                    await asyncio.sleep(0.1)
-                    if self._active_context is None or self._active_context.cancelled:
-                        return
-
                 if self._active_context is None or self._active_context.cancelled:
                     return
 
-                ok, code, output = await self._execute_with_provider(provider, model_id, prompt)
+                ok, code, output = await self._run_agent_loop(self._active_context, websocket)
                 if not ok:
                     self.history_store.append_event(task_id, "system", f"Provider error {code}: {output}")
                     await websocket.send_json(
@@ -264,6 +359,7 @@ class TaskExecutionService:
 
         task_id = self._active_context.task_id
         self._active_context.cancelled = True
+        self.task_runner.interrupt(task_id)
         self.state_manager.set_status("idle")
         self.state_manager.set_active_task(None)
         self.state_manager.bump_history_revision()
@@ -304,6 +400,7 @@ class TaskExecutionService:
         last_task_id = self._active_context.task_id if self._active_context else None
         if self._active_context is not None:
             self._active_context.cancelled = True
+            self.task_runner.interrupt(self._active_context.task_id)
         if self._active_task is not None:
             self._active_task.cancel()
         self.state_manager.set_status("idle")
@@ -328,6 +425,7 @@ class TaskExecutionService:
     async def clear_session(self, websocket: WebSocket) -> dict[str, object]:
         last_task_id = self._active_context.task_id if self._active_context else None
         if self._active_task is not None:
+            self.task_runner.interrupt(last_task_id)
             self._active_context = None
             self._active_task.cancel()
             self._active_task = None

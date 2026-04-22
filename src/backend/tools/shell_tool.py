@@ -6,6 +6,8 @@ import asyncio
 from dataclasses import dataclass
 from typing import Any
 
+from src.backend.security.command_guard import CommandGuard
+
 
 @dataclass(slots=True)
 class ShellResult:
@@ -18,12 +20,17 @@ class ShellResult:
 class ShellTool:
     """Executa comandos shell com captura simples de saida."""
 
-    def __init__(self, timeout_seconds: int = 60) -> None:
+    def __init__(self, timeout_seconds: int = 60, command_guard: CommandGuard | None = None) -> None:
         self.timeout_seconds = timeout_seconds
+        self.command_guard = command_guard or CommandGuard()
 
     async def execute(self, command: str) -> ShellResult:
         if not command.strip():
             return ShellResult(ok=False, exit_code=1, stdout="", stderr="COMMAND_REQUIRED")
+
+        guard = self.command_guard.check(command)
+        if not guard.allowed:
+            return ShellResult(ok=False, exit_code=126, stdout="", stderr=guard.reason or "COMMAND_BLOCKED")
 
         process = await asyncio.create_subprocess_shell(
             command,

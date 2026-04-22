@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from typing import Any, Literal
 
@@ -79,3 +80,63 @@ class AgentEngine:
         """Retorna mensagem legivel para falhas do loop agentico."""
 
         return f"Falha no loop agentico: {error}"
+
+    def _extract_shell_command(self, prompt: str) -> str | None:
+        text = (prompt or "").strip()
+        if not text:
+            return None
+
+        prefixed = re.match(r"^(?:shell|run|cmd)\s*:\s*(.+)$", text, flags=re.IGNORECASE)
+        if prefixed:
+            return prefixed.group(1).strip()
+
+        quoted = re.search(r"(?:comando|command)\s+[\"'`]([^\"'`]+)[\"'`]", text, flags=re.IGNORECASE)
+        if quoted:
+            return quoted.group(1).strip()
+
+        direct_keywords = (
+            " ls",
+            " pwd",
+            " whoami",
+            " uname",
+            " echo ",
+            " cat ",
+            " date",
+            " sleep ",
+            " ps ",
+        )
+        lowered = f" {text.lower()}"
+        if any(k in lowered for k in direct_keywords):
+            return text
+        return None
+
+    def decide(self, prompt: str, mode: str) -> AgentDecision:
+        """Decide entre resposta direta e uso de ferramenta via payload estruturado."""
+
+        if mode == "plan":
+            payload = {
+                "mode": mode,
+                "decision": "final_answer",
+                "message": "__PLAN_RESPONSE__",
+                "reason": "Modo plan responde sem executar ferramentas sensiveis.",
+            }
+            return self.parse_model_output(json.dumps(payload, ensure_ascii=False))
+
+        shell_command = self._extract_shell_command(prompt)
+        if shell_command:
+            payload = {
+                "mode": mode,
+                "decision": "use_tool",
+                "tool_name": "shell_tool",
+                "tool_input": {"command": shell_command},
+                "reason": "Prompt indica necessidade de execucao de comando shell.",
+            }
+            return self.parse_model_output(json.dumps(payload, ensure_ascii=False))
+
+        payload = {
+            "mode": mode,
+            "decision": "final_answer",
+            "message": "__PROVIDER_RESPONSE__",
+            "reason": "Prompt elegivel para resposta direta do provider ativo.",
+        }
+        return self.parse_model_output(json.dumps(payload, ensure_ascii=False))
