@@ -44,6 +44,8 @@ class RuntimeLayout:
     custom_models_file: Path
     google_ai_keys_file: Path
     vertex_credentials_file: Path
+    product_config_dir: Path
+    initial_rules_file: Path
 
 
 def build_runtime_layout(base_dir: str | Path | None = None) -> RuntimeLayout:
@@ -57,4 +59,6 @@ def build_runtime_layout(base_dir: str | Path | None = None) -> RuntimeLayout:
         custom_models_file=runtime_dir / "custom_models.json",
         google_ai_keys_file=runtime_dir / "google_ai_keys.json",
         vertex_credentials_file=runtime_dir / "vertex_credentials.json",
+        product_config_dir=Path(__file__).resolve().parents[1] / "product_config",
+        initial_rules_file=Path(__file__).resolve().parents[1] / "product_config" / "initial_rules.txt",
     )

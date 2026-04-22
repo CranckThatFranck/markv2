@@ -25,17 +25,14 @@ What is already working locally:
   - `remove_custom_model`
   - `get_history`
   - `clear_session`
+  - `execute_task`
+  - `interrupt`
+  - `shutdown_backend`
 - Structured error responses for:
   - invalid payloads
   - unknown actions
 - Centralized runtime path resolution with fallback support
 - Session, history, and basic state persistence
-
-What is still pending in the protocol base:
-
-- `execute_task`
-- `interrupt`
-- `shutdown_backend`
 
 ## Stack
 
@@ -153,6 +150,8 @@ Resolution order:
 
 This directory is used for state, session, history, provider metadata, and model metadata persistence.
 
+The backend also loads `src/backend/product_config/initial_rules.txt` on boot and exposes its path in `sync_state.state.paths.rules_file`. That content is the initial context for the minimal task execution flow.
+
 ## Protocol Status
 
 The WebSocket currently emits `sync_state` on connect and handles these actions:
@@ -171,8 +170,11 @@ The WebSocket currently emits `sync_state` on connect and handles these actions:
 - `remove_custom_model`
 - `get_history`
 - `clear_session`
+- `execute_task`
+- `interrupt`
+- `shutdown_backend`
 
-All other protocol actions currently return `ACTION_NOT_IMPLEMENTED` until their backend paths are completed.
+Remaining work now sits in the later tooling and provider integration layers.
 
 ## Working Notes
 

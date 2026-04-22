@@ -18,6 +18,7 @@ from src.backend.session.session_store import SessionStore
 from src.backend.session.state_manager import StateManager
 from src.backend.runtime.paths import build_runtime_layout
 from src.backend.runtime.credentials import CredentialRuntime
+from src.backend.runtime.task_execution import TaskExecutionService
 
 router = APIRouter(tags=["websocket"])
 
@@ -28,6 +29,7 @@ session_store = SessionStore(base_dir=_runtime_layout.runtime_dir)
 history_store = HistoryStore(base_dir=_runtime_layout.runtime_dir)
 model_registry = ModelRegistry(base_dir=_runtime_layout.runtime_dir)
 credential_runtime = CredentialRuntime.create(base_dir=_runtime_layout.runtime_dir)
+task_service = TaskExecutionService(state_manager=state_manager, history_store=history_store)
 
 
 def _build_models_payload() -> dict[str, list[str]]:
@@ -81,7 +83,7 @@ async def _handle_action(websocket: WebSocket, envelope: InputEnvelope) -> None:
                 action,
                 {
                     "state": _build_sync_state()["state"],
-                    "providers": provider_store.to_sync_providers_payload(),
+                    "providers": credential_runtime.provider_store.to_sync_providers_payload(),
                     "models": _build_models_payload(),
                     "session": session_store.load(),
                 },
@@ -293,7 +295,7 @@ async def _handle_action(websocket: WebSocket, envelope: InputEnvelope) -> None:
 
         provider = model_registry.resolve_provider(model_id)
         state_manager.set_model_and_provider(model_id, provider)
-        provider_store.set_active_provider(provider)
+        credential_runtime.provider_store.set_active_provider(provider)
         await websocket.send_json(
             success_response(action, {"model_id": model_id, "provider": provider}).model_dump()
         )
@@ -323,7 +325,7 @@ async def _handle_action(websocket: WebSocket, envelope: InputEnvelope) -> None:
             return
 
         state_manager.set_model_and_provider(default_model, provider)
-        provider_store.set_active_provider(provider)
+        credential_runtime.provider_store.set_active_provider(provider)
         await websocket.send_json(
             success_response(action, {"provider": provider, "model_id": default_model}).model_dump()
         )
@@ -341,6 +343,33 @@ async def _handle_action(websocket: WebSocket, envelope: InputEnvelope) -> None:
         state_manager.set_active_task(None)
         await websocket.send_json(success_response(action, {"cleared": True}).model_dump())
         await _send_sync_state(websocket)
+        return
+
+    if action == ActionName.EXECUTE_TASK.value:
+        prompt = envelope.payload.get("prompt")
+        if not isinstance(prompt, str) or not prompt.strip():
+            await websocket.send_json(
+                error_response(action=action, error_code="INVALID_PAYLOAD", message="prompt é obrigatório.").model_dump()
+            )
+            return
+
+        result = await task_service.execute_task(websocket, prompt.strip(), lambda: _send_sync_state(websocket))
+        await websocket.send_json(result)
+        await _send_sync_state(websocket)
+        return
+
+    if action == ActionName.INTERRUPT.value:
+        result = await task_service.interrupt(websocket)
+        await websocket.send_json(result)
+        await _send_sync_state(websocket)
+        return
+
+    if action == ActionName.SHUTDOWN_BACKEND.value:
+        result = await task_service.shutdown_backend(websocket)
+        await websocket.send_json(result)
+        await _send_sync_state(websocket)
+        websocket.scope["app"].state.shutdown_requested = True
+        await websocket.close(code=1000)
         return
 
     await websocket.send_json(
@@ -384,5 +413,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                 continue
 
             await _handle_action(websocket, envelope)
+            if websocket.scope["app"].state.shutdown_requested:
+                return
     except WebSocketDisconnect:
         return

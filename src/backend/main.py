@@ -24,6 +24,7 @@ def create_app() -> FastAPI:
     """Cria a instancia principal do backend com rotas basicas."""
 
     app = FastAPI(title="Mark Core v2", version="2.0.0", lifespan=lifespan)
+    app.state.shutdown_requested = False
     app.include_router(health_router)
     app.include_router(websocket_router)
     return app

@@ -46,6 +46,9 @@
 - Implementar ação `remove_custom_model`.
 - Implementar ação `get_history`.
 - Implementar ação `clear_session`.
+- Implementar ação `execute_task`.
+- Implementar ação `interrupt`.
+- Implementar ação `shutdown_backend`.
 - Validar que payload inválido gera erro estruturado.
 - Validar que ação desconhecida gera erro estruturado.
 - Implementar o `state_manager` do novo backend.
@@ -57,6 +60,9 @@
 - Persistir dados mais estruturados em SQLite quando aplicável.
 - Implementar `history_revision`.
 - Implementar `sync_state` com estado, catálogo de modelos, providers, credenciais seguras e histórico.
+- Implementar carregamento de `initial_rules.txt` no boot do backend.
+- Implementar exposição do caminho de `initial_rules.txt` dentro do `sync_state`.
+- Garantir que o backend use o conteúdo de `initial_rules.txt` como referência global inicial do agente.
 - Centralizar resolução de runtime/config/state do backend.
 - Criar `src/backend/agent/engine.py`.
 - Criar `src/backend/agent/planner.py`.
@@ -105,20 +111,11 @@
 - Revisar o TODOList.md antigo e garantir que ele agora reflita apenas o trabalho do Mark Core v2.
 - Criar pivotagem formal do abandono do núcleo baseado em Open Interpreter como motor central do produto.
 
-### Protocolo JSON/WebSocket v2
-- Implementar ação `execute_task`.
-- Implementar ação `interrupt`.
-- Implementar ação `shutdown_backend`.
-
 ### Estado, sessão e histórico
 - Validar reconexão com reidratação de histórico.
 - Validar persistência de sessão entre reinícios do backend.
 
 ### Regras iniciais do produto
-- Criar o conteúdo inicial de `product_config/initial_rules.txt` para o Mark Core v2.
-- Implementar carregamento de `initial_rules.txt` no boot do backend.
-- Implementar exposição do caminho de `initial_rules.txt` dentro do `sync_state`.
-- Garantir que o backend use o conteúdo de `initial_rules.txt` como referência global inicial do agente.
 - Validar que alterar `initial_rules.txt` e reiniciar o serviço altera o comportamento esperado do backend.
 
 ### Registry de modelos e providers

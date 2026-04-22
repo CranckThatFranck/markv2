@@ -16,8 +16,8 @@ class RuntimePaths:
     """Caminhos relevantes expostos no estado sincronizado."""
 
     base_dir: str = "/var/lib/jarvis-mark"
-    rules_file: str = "/opt/jarvis/backend/product_config/initial_rules.txt"
-    rules_dir: str = "/opt/jarvis/backend/product_config"
+    rules_file: str = ""
+    rules_dir: str = ""
 
 
 @dataclass(slots=True)
@@ -42,6 +42,9 @@ class StateManager:
         self._layout = build_runtime_layout(base_dir)
         self._base_dir = self._layout.runtime_dir
         self._config_file = self._layout.config_file
+        self._state.paths.base_dir = str(self._layout.runtime_dir)
+        self._state.paths.rules_file = str(self._layout.initial_rules_file)
+        self._state.paths.rules_dir = str(self._layout.product_config_dir)
         self._load_state()
 
     def _load_state(self) -> None:
