@@ -100,6 +100,8 @@
 - Implementar o bootstrap FastAPI/Uvicorn em `src/backend/main.py`.
 - Implementar endpoint de healthcheck HTTP.
 - Implementar subida do WebSocket principal.
+- Validar reconexão com reidratação de histórico.
+- Validar persistência de sessão entre reinícios do backend.
 
 ## A fazer
 
@@ -112,8 +114,6 @@
 - Criar pivotagem formal do abandono do núcleo baseado em Open Interpreter como motor central do produto.
 
 ### Estado, sessão e histórico
-- Validar reconexão com reidratação de histórico.
-- Validar persistência de sessão entre reinícios do backend.
 
 ### Regras iniciais do produto
 - Validar que alterar `initial_rules.txt` e reiniciar o serviço altera o comportamento esperado do backend.
