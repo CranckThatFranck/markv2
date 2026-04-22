@@ -19,6 +19,10 @@ What is already working locally:
   - `get_credentials_status`
   - `change_model`
   - `change_provider`
+  - `update_config`
+  - `set_active_credential`
+  - `add_custom_model`
+  - `remove_custom_model`
   - `get_history`
   - `clear_session`
 - Structured error responses for:
@@ -29,10 +33,6 @@ What is already working locally:
 
 What is still pending in the protocol base:
 
-- `update_config`
-- `set_active_credential`
-- `add_custom_model`
-- `remove_custom_model`
 - `execute_task`
 - `interrupt`
 - `shutdown_backend`
@@ -165,6 +165,10 @@ The WebSocket currently emits `sync_state` on connect and handles these actions:
 - `get_credentials_status`
 - `change_model`
 - `change_provider`
+- `update_config`
+- `set_active_credential`
+- `add_custom_model`
+- `remove_custom_model`
 - `get_history`
 - `clear_session`
 

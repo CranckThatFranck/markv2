@@ -82,6 +82,10 @@ class StateManager:
         self._state.status = status
         self._save_state()
 
+    def set_agent_name(self, agent_name: str) -> None:
+        self._state.agent_name = agent_name
+        self._save_state()
+
     def set_mode(self, mode: str) -> None:
         self._state.mode = mode
         self._save_state()

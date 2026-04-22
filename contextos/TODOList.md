@@ -40,6 +40,10 @@
 - Implementar ação `get_credentials_status`.
 - Implementar ação `change_model`.
 - Implementar ação `change_provider`.
+- Implementar ação `update_config`.
+- Implementar ação `set_active_credential`.
+- Implementar ação `add_custom_model`.
+- Implementar ação `remove_custom_model`.
 - Implementar ação `get_history`.
 - Implementar ação `clear_session`.
 - Validar que payload inválido gera erro estruturado.
@@ -102,10 +106,6 @@
 - Criar pivotagem formal do abandono do núcleo baseado em Open Interpreter como motor central do produto.
 
 ### Protocolo JSON/WebSocket v2
-- Implementar ação `update_config`.
-- Implementar ação `set_active_credential`.
-- Implementar ação `add_custom_model`.
-- Implementar ação `remove_custom_model`.
 - Implementar ação `execute_task`.
 - Implementar ação `interrupt`.
 - Implementar ação `shutdown_backend`.

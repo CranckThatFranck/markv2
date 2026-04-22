@@ -35,6 +35,9 @@ class VertexCredentialsManager:
             raw = json.load(f)
         return {k: VertexCredential(**v) for k, v in raw.items()}
 
+    def reload(self) -> None:
+        self._credentials = self._load()
+
     def _save(self) -> None:
         with self._file.open("w", encoding="utf-8") as f:
             json.dump({k: asdict(v) for k, v in self._credentials.items()}, f, ensure_ascii=False, indent=2)
