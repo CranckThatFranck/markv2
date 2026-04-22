@@ -59,9 +59,10 @@
 - Criar `src/backend/security/confirmations.py`.
 - Criar `src/backend/logging/logger.py`.
 - Criar `src/backend/logging/audit.py`.
+- Criar `src/backend/product_config/initial_rules.txt`.
 
 ## Fazendo
-- Criar `src/backend/product_config/initial_rules.txt`.
+- Implementar o bootstrap FastAPI/Uvicorn em `src/backend/main.py`.
 
 ## A fazer
 

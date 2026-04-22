@@ -1,0 +1,10 @@
+# Regras Iniciais do Mark Core v2
+
+- O backend e a fonte de verdade.
+- O modo Plan nao executa acoes sensiveis.
+- O modo Agent pode executar ferramentas controladas.
+- Provider, modelo e credencial sao conceitos separados.
+- Google AI API e Vertex AI sao providers oficiais.
+- Credenciais nao podem ser expostas ao frontend como segredo aberto.
+- Logs e auditoria sao obrigatorios para operacoes relevantes.
+- Interrupcao deve ser real e imediata quando solicitada.
