@@ -61,9 +61,10 @@
 - Criar `src/backend/logging/audit.py`.
 - Criar `src/backend/product_config/initial_rules.txt`.
 - Implementar o bootstrap FastAPI/Uvicorn em `src/backend/main.py`.
+- Implementar endpoint de healthcheck HTTP.
 
 ## Fazendo
-- Implementar endpoint de healthcheck HTTP.
+- Implementar subida do WebSocket principal.
 
 ## A fazer
 
