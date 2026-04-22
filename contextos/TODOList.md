@@ -56,9 +56,10 @@
 - Criar `src/backend/storage/provider_store.py`.
 - Criar `src/backend/security/policies.py`.
 - Criar `src/backend/security/command_guard.py`.
+- Criar `src/backend/security/confirmations.py`.
 
 ## Fazendo
-- Criar `src/backend/security/confirmations.py`.
+- Criar `src/backend/logging/logger.py`.
 
 ## A fazer
 
