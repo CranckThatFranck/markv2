@@ -6,6 +6,8 @@ import json
 from dataclasses import dataclass, asdict
 from pathlib import Path
 
+from src.backend.runtime.paths import build_runtime_layout
+
 
 @dataclass(slots=True)
 class GoogleAICredential:
@@ -19,10 +21,10 @@ class GoogleAICredential:
 class KeyManager:
     """Mantem cadastro e selecao da credencial ativa para google_ai."""
 
-    def __init__(self, base_dir: str = "/var/lib/jarvis-mark/estado") -> None:
-        self._base_dir = Path(base_dir)
-        self._base_dir.mkdir(parents=True, exist_ok=True)
-        self._file = self._base_dir / "google_ai_keys.json"
+    def __init__(self, base_dir: str | Path | None = None) -> None:
+        self._layout = build_runtime_layout(base_dir)
+        self._base_dir = self._layout.runtime_dir
+        self._file = self._layout.google_ai_keys_file
         self._credentials = self._load()
 
     def _load(self) -> dict[str, GoogleAICredential]:

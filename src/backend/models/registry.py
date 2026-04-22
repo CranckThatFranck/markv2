@@ -6,6 +6,8 @@ import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+from src.backend.runtime.paths import build_runtime_layout
+
 
 @dataclass(slots=True)
 class ModelEntry:
@@ -22,10 +24,10 @@ class ModelEntry:
 class ModelRegistry:
     """Mantem catalogo de modelos builtin e customizados."""
 
-    def __init__(self, base_dir: str = "/var/lib/jarvis-mark/estado") -> None:
-        self._base_dir = Path(base_dir)
-        self._base_dir.mkdir(parents=True, exist_ok=True)
-        self._custom_models_file = self._base_dir / "custom_models.json"
+    def __init__(self, base_dir: str | Path | None = None) -> None:
+        self._layout = build_runtime_layout(base_dir)
+        self._base_dir = self._layout.runtime_dir
+        self._custom_models_file = self._layout.custom_models_file
         self._builtin: dict[str, ModelEntry] = self._build_builtin_catalog()
         self._custom: dict[str, ModelEntry] = self._load_custom_models()
 

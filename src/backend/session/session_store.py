@@ -6,14 +6,16 @@ import json
 from pathlib import Path
 from typing import Any
 
+from src.backend.runtime.paths import build_runtime_layout
+
 
 class SessionStore:
     """Gerencia a sessao ativa persistida em disco."""
 
-    def __init__(self, base_dir: str = "/var/lib/jarvis-mark/estado") -> None:
-        self._base_dir = Path(base_dir)
-        self._session_file = self._base_dir / "session.json"
-        self._base_dir.mkdir(parents=True, exist_ok=True)
+    def __init__(self, base_dir: str | Path | None = None) -> None:
+        self._layout = build_runtime_layout(base_dir)
+        self._base_dir = self._layout.runtime_dir
+        self._session_file = self._layout.session_file
 
     def load(self) -> dict[str, Any]:
         """Carrega sessao atual; retorna estrutura vazia quando nao existir."""

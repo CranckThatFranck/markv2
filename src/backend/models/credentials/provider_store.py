@@ -6,14 +6,16 @@ import json
 from pathlib import Path
 from typing import Any
 
+from src.backend.runtime.paths import build_runtime_layout
+
 
 class ProviderStore:
     """Mantem provider ativo e status seguro de credenciais por provider."""
 
-    def __init__(self, base_dir: str = "/var/lib/jarvis-mark/estado") -> None:
-        self._base_dir = Path(base_dir)
-        self._base_dir.mkdir(parents=True, exist_ok=True)
-        self._file = self._base_dir / "providers.json"
+    def __init__(self, base_dir: str | Path | None = None) -> None:
+        self._layout = build_runtime_layout(base_dir)
+        self._base_dir = self._layout.runtime_dir
+        self._file = self._layout.providers_file
         self._data = self._load()
 
     def _default(self) -> dict[str, Any]:

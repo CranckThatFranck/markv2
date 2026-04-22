@@ -48,6 +48,7 @@
 - Persistir dados mais estruturados em SQLite quando aplicável.
 - Implementar `history_revision`.
 - Implementar `sync_state` com estado, catálogo de modelos, providers, credenciais seguras e histórico.
+- Centralizar resolução de runtime/config/state do backend.
 - Criar `src/backend/agent/engine.py`.
 - Criar `src/backend/agent/planner.py`.
 - Criar `src/backend/agent/prompts.py`.

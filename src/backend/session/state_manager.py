@@ -8,6 +8,8 @@ from typing import Any
 
 import json
 
+from src.backend.runtime.paths import build_runtime_layout
+
 
 @dataclass(slots=True)
 class RuntimePaths:
@@ -35,11 +37,11 @@ class BackendState:
 class StateManager:
     """Controla leitura, atualização e serialização do estado atual."""
 
-    def __init__(self, base_dir: str = "/var/lib/jarvis-mark/estado") -> None:
+    def __init__(self, base_dir: str | Path | None = None) -> None:
         self._state = BackendState()
-        self._base_dir = Path(base_dir)
-        self._base_dir.mkdir(parents=True, exist_ok=True)
-        self._config_file = self._base_dir / "config.json"
+        self._layout = build_runtime_layout(base_dir)
+        self._base_dir = self._layout.runtime_dir
+        self._config_file = self._layout.config_file
         self._load_state()
 
     def _load_state(self) -> None:

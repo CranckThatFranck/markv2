@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
-from pathlib import Path
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
@@ -19,28 +17,17 @@ from src.backend.protocol.schemas import (
 from src.backend.session.history_store import HistoryStore
 from src.backend.session.session_store import SessionStore
 from src.backend.session.state_manager import StateManager
+from src.backend.runtime.paths import build_runtime_layout
 
 router = APIRouter(tags=["websocket"])
 
 
-def _resolve_runtime_dir() -> str:
-    configured = os.getenv("MARK_STATE_DIR", "/var/lib/jarvis-mark/estado")
-    runtime_dir = Path(configured)
-    try:
-        runtime_dir.mkdir(parents=True, exist_ok=True)
-        return str(runtime_dir)
-    except PermissionError:
-        fallback_dir = Path(".mark-runtime") / "estado"
-        fallback_dir.mkdir(parents=True, exist_ok=True)
-        return str(fallback_dir)
-
-
-_runtime_dir = _resolve_runtime_dir()
-state_manager = StateManager(base_dir=_runtime_dir)
-session_store = SessionStore(base_dir=_runtime_dir)
-history_store = HistoryStore(base_dir=_runtime_dir)
-model_registry = ModelRegistry(base_dir=_runtime_dir)
-provider_store = ProviderStore(base_dir=_runtime_dir)
+_runtime_layout = build_runtime_layout()
+state_manager = StateManager(base_dir=_runtime_layout.runtime_dir)
+session_store = SessionStore(base_dir=_runtime_layout.runtime_dir)
+history_store = HistoryStore(base_dir=_runtime_layout.runtime_dir)
+model_registry = ModelRegistry(base_dir=_runtime_layout.runtime_dir)
+provider_store = ProviderStore(base_dir=_runtime_layout.runtime_dir)
 
 
 def _build_models_payload() -> dict[str, list[str]]:

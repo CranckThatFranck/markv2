@@ -6,6 +6,8 @@ import json
 from dataclasses import dataclass, asdict
 from pathlib import Path
 
+from src.backend.runtime.paths import build_runtime_layout
+
 
 @dataclass(slots=True)
 class VertexCredential:
@@ -20,10 +22,10 @@ class VertexCredential:
 class VertexCredentialsManager:
     """Mantem cadastro e selecao de credencial ativa para vertex_ai."""
 
-    def __init__(self, base_dir: str = "/var/lib/jarvis-mark/estado") -> None:
-        self._base_dir = Path(base_dir)
-        self._base_dir.mkdir(parents=True, exist_ok=True)
-        self._file = self._base_dir / "vertex_credentials.json"
+    def __init__(self, base_dir: str | Path | None = None) -> None:
+        self._layout = build_runtime_layout(base_dir)
+        self._base_dir = self._layout.runtime_dir
+        self._file = self._layout.vertex_credentials_file
         self._credentials = self._load()
 
     def _load(self) -> dict[str, VertexCredential]:
