@@ -134,6 +134,33 @@
 - Implementar tratamento de indisponibilidade de modelo no Vertex AI.
 - Implementar retorno normalizado para o agent loop.
 - Validar erro claro quando credenciais ou região estiverem incorretas.
+- Implementar o `agent/engine.py`.
+- Definir o formato estruturado de decisão do agente em JSON.
+- Implementar suporte às decisões `final_answer` e `use_tool`.
+- Implementar `planner.py` para modo Plan.
+- Implementar `tool_router.py`.
+- Validar uma tarefa simples em modo Agent.
+- Implementar `shell_tool.py`.
+- Implementar execução shell com streaming de stdout.
+- Implementar execução shell com streaming de stderr.
+- Implementar timeout na shell tool.
+- Implementar rastreamento PID/PGID.
+- Implementar `process_manager.py`.
+- Implementar `stream_manager.py`.
+- Implementar `task_runner.py`.
+- Validar comando curto via shell tool.
+- Validar comando com stderr.
+- Validar que o backend permanece responsivo durante execução longa.
+- Implementar localização da task ativa.
+- Implementar interrupção real do grupo de processos.
+- Implementar limpeza do estado da tarefa interrompida.
+- Implementar evento de sistema para interrupção.
+- Implementar atualização de `sync_state` após interrupção.
+- Validar interrupção de tarefa longa sem reiniciar o backend.
+- Implementar integração do agent loop com tool execution.
+- Implementar emissão de `message`, `code`, `console` e `system`.
+- Validar tarefa ponta a ponta com resposta final visível.
+- Validar tarefa ponta a ponta com uso de shell tool.
 
 ## A fazer
 
@@ -181,42 +208,19 @@
 - Validar que o backend diferencia claramente falha de autenticação, falha de quota, falha de região e falha de modelo.
 
 ### Motor agentic próprio
-- Implementar o `agent/engine.py`.
-- Definir o formato estruturado de decisão do agente em JSON.
-- Implementar suporte às decisões `final_answer` e `use_tool`.
-- Implementar `planner.py` para modo Plan.
-- Implementar `tool_router.py`.
 - Implementar construção do contexto da tarefa.
 - Implementar aplicação das regras iniciais ao agent loop.
 - Implementar limites de iteração.
 - Implementar tratamento de JSON inválido vindo do modelo.
 - Implementar retorno legível de falha do agent loop.
 - Validar uma tarefa simples em modo Plan.
-- Validar uma tarefa simples em modo Agent.
 
 ### Ferramenta shell e execução real
-- Implementar `shell_tool.py`.
-- Implementar execução shell com streaming de stdout.
-- Implementar execução shell com streaming de stderr.
-- Implementar timeout na shell tool.
-- Implementar rastreamento PID/PGID.
-- Implementar `process_manager.py`.
-- Implementar `stream_manager.py`.
-- Implementar `task_runner.py`.
-- Validar comando curto via shell tool.
 - Validar comando mais longo com streaming progressivo.
-- Validar comando com stderr.
-- Validar que o backend permanece responsivo durante execução longa.
 
 ### Interrupt e kill switch
 - Implementar `interrupt_manager.py`.
 - Implementar ação `interrupt`.
-- Implementar localização da task ativa.
-- Implementar interrupção real do grupo de processos.
-- Implementar limpeza do estado da tarefa interrompida.
-- Implementar evento de sistema para interrupção.
-- Implementar atualização de `sync_state` após interrupção.
-- Validar interrupção de tarefa longa sem reiniciar o backend.
 - Validar que nova tarefa pode começar após o interrupt.
 
 ### execute_task ponta a ponta
@@ -224,12 +228,8 @@
 - Implementar criação de `task_id`.
 - Implementar emissão de evento `user`.
 - Implementar emissão de `status START`.
-- Implementar integração do agent loop com tool execution.
-- Implementar emissão de `message`, `code`, `console` e `system`.
 - Implementar emissão de `status END`.
 - Persistir histórico completo da tarefa.
-- Validar tarefa ponta a ponta com resposta final visível.
-- Validar tarefa ponta a ponta com uso de shell tool.
 
 ### Segurança e guardrails
 - Implementar `security/policies.py`.

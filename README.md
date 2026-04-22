@@ -206,6 +206,28 @@ Provider failures are normalized and surfaced as structured protocol errors, inc
 
 The current backend has been validated with real positive WebSocket `execute_task` inference for both providers using the active environment variables.
 
+## Tools And Execution Path
+
+`execute_task` now supports a minimal agentic decision path with two structured outcomes:
+
+- `final_answer`
+- `use_tool`
+
+When the decision is `use_tool`, the backend routes through `shell_tool` and emits:
+
+- `code` event with the command
+- `console` events for `stdout` and `stderr`
+- `system` events for execution lifecycle
+
+Execution internals:
+
+- `src/backend/tools/shell_tool.py` applies command guard checks and normalized shell behavior
+- `src/backend/execution/process_manager.py` tracks real PID/PGID and supports process-group interruption
+- `src/backend/execution/stream_manager.py` streams stdout/stderr incrementally
+- `src/backend/execution/task_runner.py` coordinates timeout, stream emission, and interruption
+
+Interrupt behavior now performs real subprocess interruption and returns task state to `idle` with coherent `sync_state` updates.
+
 ## Working Notes
 
 - The operational TODO is in `contextos/TODOList.md`.
