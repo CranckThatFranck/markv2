@@ -39,9 +39,10 @@
 - Criar `src/backend/models/credentials/key_manager.py`.
 - Criar `src/backend/models/credentials/vertex_credentials.py`.
 - Criar `src/backend/models/credentials/provider_store.py`.
+- Criar `src/backend/models/policies/provider_policy.py`.
 
 ## Fazendo
-- Criar `src/backend/models/policies/provider_policy.py`.
+- Criar `src/backend/models/policies/model_policy.py`.
 
 ## A fazer
 
