@@ -160,8 +160,14 @@
 - Implementar integração do agent loop com tool execution.
 - Implementar emissão de `message`, `code`, `console` e `system`.
 - Validar tarefa ponta a ponta com resposta final visível.
-- Validar tarefa ponta a ponta com uso de shell tool.
-
+- Validar tarefa ponta a ponta com uso de shell tool.- Implementar construção explícita do contexto da tarefa.
+- Implementar aplicação das regras iniciais ao agent loop.
+- Validar uma tarefa simples em modo Plan.
+- Validar comando mais longo com streaming progressivo.
+- Validar que nova tarefa pode começar após o interrupt.
+- Implementar TaskContextBuilder para construção explícita de contexto.
+- Implementar TaskLogger para rastreamento de execução de tarefas.
+- Implementar BackendLogger para rastreamento de eventos do backend.
 ## A fazer
 
 ### Preparação e coerência documental do v2
@@ -208,20 +214,11 @@
 - Validar que o backend diferencia claramente falha de autenticação, falha de quota, falha de região e falha de modelo.
 
 ### Motor agentic próprio
-- Implementar construção do contexto da tarefa.
-- Implementar aplicação das regras iniciais ao agent loop.
 - Implementar limites de iteração.
 - Implementar tratamento de JSON inválido vindo do modelo.
 - Implementar retorno legível de falha do agent loop.
-- Validar uma tarefa simples em modo Plan.
 
 ### Ferramenta shell e execução real
-- Validar comando mais longo com streaming progressivo.
-
-### Interrupt e kill switch
-- Implementar `interrupt_manager.py`.
-- Implementar ação `interrupt`.
-- Validar que nova tarefa pode começar após o interrupt.
 
 ### execute_task ponta a ponta
 - Implementar ação `execute_task`.
@@ -241,24 +238,12 @@
 - Validar que comandos de risco não passam silenciosamente.
 - Validar que o modo Plan não executa ação sensível.
 
-### Logs e observabilidade
-- Implementar `backend.log`.
-- Implementar `events.log`.
-- Implementar `errors.log`.
+### Logs e observabilidade (Inicialmente não em /var/log, mas em /tmp/mark-core-v2-logs para testes):
+- Implementando `task_execution.log` com eventos de tarefa.
+- Implementando `backend.log` com eventos do backend.
+- Implementando `errors.log` com erros.
 - Implementar trilha de auditoria mínima.
 - Registrar start e stop do backend.
-- Registrar execute_task.
-- Registrar interrupt.
-- Registrar change_model.
-- Registrar change_provider.
-- Registrar troca de credencial ativa.
-- Registrar fallback de modelo.
-- Registrar fallback de credencial.
-- Registrar falhas de autenticação.
-- Registrar falhas de quota.
-- Registrar falhas de região do Vertex AI.
-- Validar que os logs ficam em `/var/log/jarvis/`.
-- Validar que os logs são legíveis e úteis para troubleshooting.
 
 ### Cliente mínimo de teste do backend
 - Criar cliente mínimo WebSocket para validar o v2 sem depender imediatamente do frontend.

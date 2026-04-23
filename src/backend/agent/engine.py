@@ -110,8 +110,13 @@ class AgentEngine:
             return text
         return None
 
-    def decide(self, prompt: str, mode: str) -> AgentDecision:
-        """Decide entre resposta direta e uso de ferramenta via payload estruturado."""
+    def decide(self, prompt: str, mode: str, rules_text: str | None = None) -> AgentDecision:
+        """Decide entre resposta direta e uso de ferramenta via payload estruturado.
+        
+        Aplica regras iniciais para governar decisoes no modo Agent e Plan.
+        Plan mode nunca executa ferramentas sensiveis conforme a regra:
+        'O modo Plan nao executa acoes sensiveis.'
+        """
 
         if mode == "plan":
             payload = {

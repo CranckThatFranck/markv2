@@ -228,6 +228,82 @@ Execution internals:
 
 Interrupt behavior now performs real subprocess interruption and returns task state to `idle` with coherent `sync_state` updates.
 
+## Agent Context And Rules Application
+
+The agent loop now explicitly constructs task context through `src/backend/agent/context_builder.py`, which:
+
+- Merges `initial_rules.txt` content with the current task prompt
+- Extracts rules relevant to the current mode (`plan` or `agent`)
+- Passes rules to decision-making through `AgentEngine.decide(prompt, mode, rules_text)`
+
+The `initial_rules.txt` is loaded at boot and exposed via `sync_state.state.paths.rules_file`.
+
+Current rules (from `initial_rules.txt`):
+
+- Plan mode does not execute sensitive actions
+- Agent mode can execute controlled tools
+- Provider, model, and credential are separate concepts
+- Google AI API and Vertex AI are official providers
+- Logs and audit trails are mandatory
+- Interruption must be real and immediate when requested
+
+These rules constrain the agent decision logic:
+
+- `mode="plan"` always returns `final_answer` with a plan rendering, never executes tools
+- `mode="agent"` routes shell prompts to `shell_tool`, other prompts to the provider
+
+## Mode Behaviors
+
+### Plan Mode (`mode="plan"`)
+
+- Generates a structured plan for the task
+- Does NOT execute tools
+- Returns a message with plan steps and a disclaimer that this is a plan only
+- Can be used for safety-first operation or user approval before execution
+
+### Agent Mode (`mode="agent"`)
+
+- Detects shell-like prompts via regex patterns
+- Routes shell commands to `shell_tool` with progressive stdout/stderr streaming
+- Routes other prompts to the active provider (Google AI or Vertex AI)
+- Executes with full tool access
+
+## Task Execution And Logging
+
+Task execution now logs to local files in `/tmp/mark-core-v2-logs/`:
+
+- `task_execution.log`: per-task events including rule application, agent decisions, and tool execution
+- `backend.log`: backend lifecycle events (startup, execute_task, interrupt)
+- `errors.log`: error events with context
+
+Logging includes:
+
+- Rules applied to each task
+- Agent decision type and reasoning
+- Tool execution details (command, exit code, duration)
+- Task start/end and interrupt events
+
+## Streaming Behavior
+
+Commands executed via `shell_tool` now emit `console` events progressively as output is generated:
+
+- Each stdout line emitted as a separate `console` event with `stream="stdout"`
+- Each stderr line emitted as a separate `console` event with `stream="stderr"`
+- PID/PGID emitted as first console line for process identification
+
+This enables real-time progress visualization in the frontend.
+
+## Interrupt And Recovery
+
+Interruption of a running task:
+
+- Sends `SIGTERM` to the process group (PGID)
+- Updates state back to `idle`
+- Bumps `history_revision` for change tracking
+- Clears active task state
+
+A new `execute_task` can be started immediately after interrupt without backend restart. State coherence is maintained through centralized `StateManager`.
+
 ## Working Notes
 
 - The operational TODO is in `contextos/TODOList.md`.

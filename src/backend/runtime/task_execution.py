@@ -9,10 +9,12 @@ from typing import Awaitable, Callable
 
 from fastapi import WebSocket
 
+from src.backend.agent.context_builder import TaskContextBuilder
 from src.backend.agent.engine import AgentDecision, AgentEngine
 from src.backend.agent.planner import Planner
 from src.backend.agent.tool_router import ToolRouter
 from src.backend.execution.task_runner import TaskRunner
+from src.backend.logging.task_logger import BackendLogger, TaskLogger
 from src.backend.models.providers.google_ai_client import GoogleAIClient
 from src.backend.models.providers.vertex_ai_client import VertexAIClient
 from src.backend.models.router import ModelRouter
@@ -62,6 +64,9 @@ class TaskExecutionService:
         self._shutdown_requested = False
         self._dispatch_task_id: str | None = None
         self._dispatch_emit_console: Callable[[str, str], Awaitable[None]] | None = None
+        self.context_builder = TaskContextBuilder()
+        self.task_logger = TaskLogger()
+        self.backend_logger = BackendLogger()
 
     @property
     def rules_file(self) -> str:
@@ -147,7 +152,24 @@ class TaskExecutionService:
                 }
             )
 
-        decision: AgentDecision = self.agent_engine.decide(context.prompt, context.mode)
+        # Extract rules from the initial_rules.txt and log application
+        rules_applied = self.context_builder._extract_rules(context.rules_text, context.mode)
+        self.task_logger.log_rule_application(
+            context.task_id,
+            context.mode,
+            rules_applied,
+            "rules_loaded_for_decision_making",
+        )
+
+        decision: AgentDecision = self.agent_engine.decide(context.prompt, context.mode, rules_text=context.rules_text)
+
+        # Log the agent decision
+        self.task_logger.log_agent_decision(
+            context.task_id,
+            decision.decision,
+            decision.tool_name,
+            decision.reason or "no reason provided",
+        )
 
         if decision.decision == "use_tool":
             tool_name = decision.tool_name or ""
@@ -189,7 +211,7 @@ class TaskExecutionService:
             return True, "OK", final
 
         if decision.message == "__PLAN_RESPONSE__":
-            plan_message = self.planner.render_plan_message(context.prompt)
+            plan_message = self.planner.render_plan_message(context.prompt, context.mode, rules_applied)
             return True, "OK", plan_message
 
         return await self._execute_with_provider(context.provider, context.model_id, context.prompt)
@@ -230,6 +252,10 @@ class TaskExecutionService:
             provider=provider,
             model_id=model_id,
         )
+        
+        # Log task execution start
+        self.backend_logger.log_execute_task(task_id, mode, provider, model_id)
+        
         self.state_manager.set_active_task(task_id)
         self.state_manager.set_status("running")
         self.state_manager.bump_history_revision()
@@ -358,6 +384,7 @@ class TaskExecutionService:
             ).model_dump()
 
         task_id = self._active_context.task_id
+        self.backend_logger.log_interrupt(task_id)
         self._active_context.cancelled = True
         self.task_runner.interrupt(task_id)
         self.state_manager.set_status("idle")
