@@ -53,7 +53,9 @@ What is already working locally:
 - Official docs: `contextos/`
 - Operational TODO: `contextos/TODOList.md`
 - Backend code: `src/backend/`
+- Frontend code: `src/frontend/`
 - Backend dependencies: `requirements-backend.txt`
+- Frontend dependencies: `requirements-frontend.txt`
 
 Important official documents:
 
@@ -80,6 +82,12 @@ Install backend dependencies:
 pip install -r requirements-backend.txt
 ```
 
+Install frontend dependencies in the same virtual environment:
+
+```bash
+pip install -r requirements-frontend.txt
+```
+
 If you are reusing the existing workspace `.venv`, you can activate that one instead of creating a fresh environment.
 
 ## Run the Backend
@@ -98,6 +106,32 @@ Healthcheck:
 WebSocket:
 
 - `ws://127.0.0.1:8000/ws`
+
+## Run the Frontend v2
+
+The current frontend v2 is a minimal Linux desktop client built with:
+
+- Python 3.12
+- Tkinter for the desktop window
+- `websockets` for the backend connection
+
+Run it from the repository root after the backend is already available:
+
+```bash
+source .venv/bin/activate
+python -m src.frontend.main
+```
+
+Current frontend behavior:
+
+- defaults to `ws://127.0.0.1:8000/ws`
+- can reconnect to another backend host by editing the WebSocket URL in the window
+- reads the backend `sync_state` and keeps the backend as the operational source of truth
+- shows current backend status, active provider, active model, mode, active task, rehydrated history, session metadata, and safe credential status
+- supports `execute_task`, `interrupt`, `change_provider`, `change_model`, and manual refresh of operational state
+- persists only local frontend preferences in `~/.config/mark-core-v2-frontend/preferences.json`
+
+The frontend does not persist operational state on its own. Session, history, provider, model, and credential status continue to come from the backend.
 
 ## Test the Current WebSocket
 
@@ -535,6 +569,21 @@ PY
 ```
 
 Local validation also confirmed a simple `execute_task` through the service with a real WebSocket client.
+
+## Frontend v2 Validation Status
+
+The minimal frontend v2 has been validated locally against the installed `mark-core-v2` systemd service with these real flows:
+
+- open the desktop application
+- connect to `ws://127.0.0.1:8000/ws`
+- receive `sync_state`
+- rehydrate persisted history
+- display safe credential status
+- switch provider
+- switch model
+- execute `echo frontend smoke ok`
+- interrupt `sleep 20`
+- reconnect and receive the persisted session state again
 
 The `.deb` installation path was also revalidated after removing the previous manual installation and reinstalling through `dpkg -i`.
 

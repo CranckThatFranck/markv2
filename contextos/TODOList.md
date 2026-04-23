@@ -268,15 +268,6 @@
 - Validar `interrupt`.
 
 ### Adaptação do frontend atual ao v2
-- Adaptar o frontend atual ao `sync_state` do Mark Core v2.
-- Adaptar o frontend atual ao catálogo de providers e modelos do v2.
-- Adaptar o frontend atual à troca de provider.
-- Adaptar o frontend atual à troca de modelo.
-- Adaptar o frontend atual à leitura de status seguro de credenciais.
-- Adaptar o frontend atual ao novo histórico persistido.
-- Validar `execute_task` via frontend.
-- Validar `interrupt` via frontend.
-- Validar reconexão e reidratação de sessão via frontend.
 - Validar Google AI API via frontend.
 - Validar Vertex AI via frontend.
 
@@ -389,3 +380,27 @@
 ### A fazer
 - Documentar troubleshooting adicional conforme necessário.
 - Fazer commit de toda a Fase 2 após validação completa.
+
+## Fase 3: Frontend v2 mínimo operacional
+
+### Feito
+- Criar `requirements-frontend.txt` do frontend v2.
+- Criar a estrutura inicial do frontend v2 em `src/frontend`.
+- Implementar cliente WebSocket do frontend compatível com o protocolo atual do backend.
+- Implementar janela principal mínima funcional para Linux desktop.
+- Implementar conexão padrão com `ws://127.0.0.1:8000/ws`.
+- Implementar host do backend configurável no frontend.
+- Implementar persistência local apenas de preferências visuais e host do backend.
+- Adaptar o frontend atual ao `sync_state` do Mark Core v2.
+- Adaptar o frontend atual ao catálogo de providers e modelos do v2.
+- Adaptar o frontend atual à troca de provider.
+- Adaptar o frontend atual à troca de modelo.
+- Adaptar o frontend atual à leitura de status seguro de credenciais.
+- Adaptar o frontend atual ao novo histórico persistido.
+- Validar `execute_task` via frontend.
+- Validar `interrupt` via frontend.
+- Validar reconexão e reidratação de sessão via frontend.
+
+### A fazer
+- Validar Google AI API via frontend.
+- Validar Vertex AI via frontend.
