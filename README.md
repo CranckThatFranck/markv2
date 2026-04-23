@@ -376,7 +376,7 @@ sudo bash scripts/install-systemd.sh
 This script:
 - Creates the `jarvis` system user
 - Copies backend code to `/opt/jarvis/backend`
-- Creates `/opt/jarvis/backend/.venv` and installs backend dependencies
+- Creates `/opt/jarvis/backend/.venv` in the final install path and installs backend dependencies
 - Installs `/etc/systemd/system/mark-core-v2.service`
 - Installs `/etc/mark-core-v2/environment`
 - Creates persistent directories:
@@ -387,14 +387,20 @@ This script:
 **From .deb (Debian/Ubuntu):**
 
 ```bash
+cd /path/to/markv2
+bash packaging/build-deb.sh
 sudo dpkg -i packaging/mark-core-v2_0.1.0-1_all.deb
 ```
 
 **From .rpm (Red Hat/CentOS/Fedora):**
 
 ```bash
+cd /path/to/markv2
+bash packaging/build-rpm.sh
 sudo rpm -i packaging/mark-core-v2-0.1.0-1.el7.x86_64.rpm
 ```
+
+On this Ubuntu host the `.rpm` build is supported directly by local `rpmbuild`; no container or Podman layer was needed.
 
 #### 2. Configure Environment Variables
 
@@ -421,6 +427,8 @@ VERTEXAI_LOCATION=us-central1
 ```
 
 `EnvironmentFile=-/etc/mark-core-v2/environment` is loaded automatically on service start.
+
+Package installs can take longer on first install because the service virtualenv is created in `/opt/jarvis/backend/.venv` during package installation.
 
 #### 3. Lifecycle Commands
 
@@ -491,6 +499,8 @@ PY
 ```
 
 Local validation also confirmed a simple `execute_task` through the service with a real WebSocket client.
+
+The `.deb` installation path was also revalidated after removing the previous manual installation and reinstalling through `dpkg -i`.
 
 #### 5. Logs and Persistence
 

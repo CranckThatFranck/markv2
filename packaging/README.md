@@ -14,9 +14,9 @@ The packaged service runs with:
 
 **Files:**
 - `deb/control` - binary package metadata
-- `deb/postinst` - creates `jarvis`, prepares directories, reloads systemd
+- `deb/postinst` - creates `jarvis`, prepares directories, creates `/opt/jarvis/backend/.venv`, installs dependencies, reloads systemd
 - `deb/prerm` - stops/disables the service before removal
-- `build-deb.sh` - stages the repo, creates `.venv`, and builds the package
+- `build-deb.sh` - stages the repo and builds the package
 
 **Build:**
 ```bash
@@ -28,6 +28,8 @@ bash build-deb.sh
 
 **Validated locally:** `dpkg-deb --info packaging/mark-core-v2_0.1.0-1_all.deb`
 
+**Validated locally:** real reinstall with `sudo dpkg -i packaging/mark-core-v2_0.1.0-1_all.deb` followed by `systemctl start/status`, `curl /health`, and WebSocket `execute_task`.
+
 **Install:**
 ```bash
 sudo dpkg -i packaging/mark-core-v2_0.1.0-1_all.deb
@@ -38,7 +40,7 @@ sudo systemctl start mark-core-v2
 
 **Files:**
 - `rpm/mark-core-v2.spec` - RPM spec file
-- `build-rpm.sh` - prepares source tarball and calls `rpmbuild`
+- `build-rpm.sh` - prepares source tarball and calls local `rpmbuild`
 
 **Build:**
 ```bash
@@ -48,7 +50,7 @@ bash build-rpm.sh
 
 **Result:** `mark-core-v2-0.1.0-1...rpm` in `packaging/`
 
-If `rpmbuild` is missing, the script exits with a clear message instead of pretending to succeed.
+Validated on this Ubuntu host with local `rpmbuild`, so no container or Podman wrapper is required here.
 
 **Install:**
 ```bash
@@ -63,7 +65,8 @@ sudo systemctl start mark-core-v2
 3. Environment file installed at `/etc/mark-core-v2/environment`
 4. `jarvis` system user created if needed
 5. Directories created: `/var/lib/jarvis-mark/estado` and `/var/log/jarvis`
-6. Service ready for `systemctl daemon-reload`, `start`, `stop`, `restart`, `status`, and `enable`
+6. A fresh runtime virtualenv is created in `/opt/jarvis/backend/.venv` on package install
+7. Service ready for `systemctl daemon-reload`, `start`, `stop`, `restart`, `status`, and `enable`
 
 ## Environment Configuration
 

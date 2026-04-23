@@ -37,13 +37,6 @@ rsync -av --exclude='.git' --exclude='.venv' \
     --exclude='.vscode' \
     "$REPO_ROOT/" "$WORK_DIR/opt/jarvis/backend/"
 
-# Create .venv in package
-cd "$WORK_DIR/opt/jarvis/backend"
-python3.12 -m venv .venv
-.venv/bin/pip install -U pip setuptools wheel > /dev/null 2>&1
-.venv/bin/pip install -r requirements-backend.txt > /dev/null 2>&1
-cd - > /dev/null
-
 # Copy systemd files
 cp "$REPO_ROOT/systemd/mark-core-v2.service" "$WORK_DIR/etc/systemd/system/"
 cp "$REPO_ROOT/systemd/mark-core-v2.environment" "$WORK_DIR/etc/mark-core-v2/environment"

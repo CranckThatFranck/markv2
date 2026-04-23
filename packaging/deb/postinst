@@ -27,6 +27,12 @@ case "$1" in
         chmod 755 /var/log/jarvis
         chmod 755 /var/lib/jarvis-mark/estado
 
+        # Build the runtime virtualenv in the final installed path so entrypoint
+        # scripts such as uvicorn get stable shebangs.
+        python3.12 -m venv /opt/jarvis/backend/.venv
+        /opt/jarvis/backend/.venv/bin/pip install -U pip setuptools wheel
+        /opt/jarvis/backend/.venv/bin/pip install -r /opt/jarvis/backend/requirements-backend.txt
+
         # Keep the packaged environment file readable only by privileged users.
         chmod 640 /etc/mark-core-v2/environment || true
 

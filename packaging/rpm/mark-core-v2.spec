@@ -17,9 +17,6 @@ credential management, and structured logging.
 %setup -q
 
 %build
-python3.12 -m venv .venv
-.venv/bin/pip install -U pip setuptools wheel
-.venv/bin/pip install -r requirements-backend.txt
 
 %install
 mkdir -p %{buildroot}/opt/jarvis/backend
@@ -36,6 +33,12 @@ cp systemd/mark-core-v2.environment %{buildroot}/etc/mark-core-v2/environment
 %post
 # Create jarvis user if it doesn't exist
 id -u jarvis > /dev/null 2>&1 || useradd --system --home /var/lib/jarvis-mark --no-create-home jarvis
+
+# Build the runtime virtualenv in the final installed path so entrypoint
+# scripts use stable shebangs.
+python3.12 -m venv /opt/jarvis/backend/.venv
+/opt/jarvis/backend/.venv/bin/pip install -U pip setuptools wheel
+/opt/jarvis/backend/.venv/bin/pip install -r /opt/jarvis/backend/requirements-backend.txt
 
 # Set ownership
 chown -R jarvis:jarvis /opt/jarvis/backend
@@ -63,5 +66,5 @@ systemctl daemon-reload || true
 %dir /var/log/jarvis
 
 %changelog
-* Wed Apr 23 2026 CranckThatFranck
+* Thu Apr 23 2026 CranckThatFranck
 - Initial release of Mark Core v2

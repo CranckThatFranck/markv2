@@ -381,9 +381,9 @@
 - Validar `systemctl stop`, `systemctl restart`, `systemctl enable`: ✓ All commands working
 - Validar execute_task através do serviço: ✓ Protocol actions processed correctly
 - Testar `.deb` build localmente.
+- Validar instalação via `.deb` e operação do serviço.
+- Testar `.rpm` build localmente (se rpmbuild disponível).
 
 ### A fazer
-- Testar `.rpm` build localmente (se rpmbuild disponível).
-- Validar instalação via `.deb` e operação do serviço.
 - Documentar troubleshooting adicional conforme necessário.
 - Fazer commit de toda a Fase 2 após validação completa.
