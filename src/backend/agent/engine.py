@@ -110,6 +110,32 @@ class AgentEngine:
             return text
         return None
 
+    def _extract_ssh_command(self, prompt: str) -> dict[str, Any] | None:
+        text = (prompt or "").strip()
+        if not text:
+            return None
+
+        patterns = (
+            r"^ssh[:\s]+(?:(?P<user>[^@\s:]+)@)?(?P<host>[^\s:]+)(?::(?P<port>\d+))?\s+(?P<command>.+)$",
+            r"^remote[:\s]+(?:(?P<user>[^@\s:]+)@)?(?P<host>[^\s:]+)(?::(?P<port>\d+))?\s+(?P<command>.+)$",
+        )
+        for pattern in patterns:
+            match = re.match(pattern, text, flags=re.IGNORECASE)
+            if match:
+                port_text = match.groupdict().get("port") or "22"
+                try:
+                    port = int(port_text)
+                except ValueError:
+                    return None
+                return {
+                    "user": match.groupdict().get("user"),
+                    "host": match.groupdict().get("host", "").strip(),
+                    "port": port,
+                    "command": match.groupdict().get("command", "").strip(),
+                }
+
+        return None
+
     def decide(self, prompt: str, mode: str, rules_text: str | None = None) -> AgentDecision:
         """Decide entre resposta direta e uso de ferramenta via payload estruturado.
         
@@ -124,6 +150,17 @@ class AgentEngine:
                 "decision": "final_answer",
                 "message": "__PLAN_RESPONSE__",
                 "reason": "Modo plan responde sem executar ferramentas sensiveis.",
+            }
+            return self.parse_model_output(json.dumps(payload, ensure_ascii=False))
+
+        ssh_command = self._extract_ssh_command(prompt)
+        if ssh_command:
+            payload = {
+                "mode": mode,
+                "decision": "use_tool",
+                "tool_name": "ssh_tool",
+                "tool_input": ssh_command,
+                "reason": "Prompt indica necessidade de execucao remota SSH.",
             }
             return self.parse_model_output(json.dumps(payload, ensure_ascii=False))
 

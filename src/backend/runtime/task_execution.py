@@ -19,6 +19,7 @@ from src.backend.models.providers.google_ai_client import GoogleAIClient
 from src.backend.models.providers.vertex_ai_client import VertexAIClient
 from src.backend.models.router import ModelRouter
 from src.backend.security.confirmations import ConfirmationPolicy
+from src.backend.tools.ssh_tool import SSHTool
 from src.backend.protocol.schemas import error_response, success_response
 from src.backend.runtime.credentials import CredentialRuntime
 from src.backend.runtime.rules import build_rules_runtime
@@ -59,7 +60,9 @@ class TaskExecutionService:
         self.planner = Planner()
         self.tool_router = ToolRouter()
         self.task_runner = TaskRunner(timeout_seconds=90)
+        self.ssh_tool = SSHTool(timeout_seconds=90, command_guard=self.task_runner.shell_tool.command_guard)
         self.tool_router.register_tool("shell_tool", self._shell_tool_handler)
+        self.tool_router.register_tool("ssh_tool", self._ssh_tool_handler)
         self._active_context: TaskContext | None = None
         self._active_task: asyncio.Task[None] | None = None
         self._shutdown_requested = False
@@ -154,6 +157,54 @@ class TaskExecutionService:
             "command": command,
         }
 
+    async def _ssh_tool_handler(self, tool_input: dict[str, object]) -> dict[str, object]:
+        host = str(tool_input.get("host", "")).strip()
+        command = str(tool_input.get("command", "")).strip()
+        user_value = tool_input.get("user")
+        password_value = tool_input.get("password")
+        port_value = tool_input.get("port", 22)
+        if not host:
+            raise ValueError("HOST_REQUIRED")
+        if not command:
+            raise ValueError("COMMAND_REQUIRED")
+        if self._dispatch_task_id is None or self._dispatch_emit_console is None:
+            raise RuntimeError("TOOL_ROUTER_CONTEXT_MISSING")
+
+        try:
+            port = int(port_value)
+        except (TypeError, ValueError):
+            return {
+                "ok": False,
+                "exit_code": 1,
+                "stdout": "",
+                "stderr": "PORT_INVALID",
+                "host": host,
+                "command": command,
+            }
+
+        result = await self.ssh_tool.execute(
+            host=host,
+            command=command,
+            user=str(user_value).strip() if isinstance(user_value, str) and user_value.strip() else None,
+            port=port,
+            password=str(password_value) if isinstance(password_value, str) and password_value else None,
+            mode=self._dispatch_mode or "agent",
+            emit_console=self._dispatch_emit_console,
+        )
+        return {
+            "ok": result.ok,
+            "exit_code": result.exit_code,
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+            "pid": -1,
+            "pgid": -1,
+            "host": result.host,
+            "command": result.command,
+            "user": result.user,
+            "port": result.port,
+            "error_code": result.error_code,
+        }
+
     async def _run_agent_loop(
         self,
         context: TaskContext,
@@ -224,13 +275,13 @@ class TaskExecutionService:
                     {
                         "type": "system",
                         "protocol_version": "2.0",
-                        "message": f"Comando bloqueado pela política de segurança: {blocked_reason}",
+                        "message": f"Execução bloqueada ou falhou na política de segurança/SSH: {blocked_reason}",
                     }
                 )
                 return (
                     False,
                     "TOOL_EXECUTION_FAILED",
-                    f"shell_tool bloqueou a execução (exit_code={tool_result.get('exit_code')}): {blocked_reason}",
+                    f"{tool_name} bloqueou a execução (exit_code={tool_result.get('exit_code')}): {blocked_reason}",
                 )
 
             stdout = str(tool_result.get("stdout", "")).strip()

@@ -232,12 +232,17 @@
 - Implementar `security/policies.py`.
 - Implementar `command_guard.py`.
 - Implementar `confirmations.py`.
+- Implementar política de SSH e hosts remotos.
+- Implementar `ssh_tool.py`.
 - Implementar bloqueio inicial de comandos destrutivos explícitos.
 - Implementar distinção comportamental entre Plan e Agent.
 - Implementar bloqueio de ferramentas sensíveis em Plan.
-- Implementar política inicial para operações SSH e hosts remotos.
 - Validar que comandos de risco não passam silenciosamente.
 - Validar que o modo Plan não executa ação sensível.
+- Validar host remoto permitido com comando seguro.
+- Validar host remoto bloqueado por política.
+- Validar erro estruturado de conexão SSH.
+- Validar continuidade do backend após falha remota.
 
 ### Logs e observabilidade (Inicialmente não em /var/log, mas em /tmp/mark-core-v2-logs para testes):
 - Implementando `task_execution.log` com eventos de tarefa.
@@ -319,11 +324,17 @@
 - Implementar `security/policies.py`.
 - Implementar `command_guard.py`.
 - Implementar `confirmations.py`.
+- Implementar política de SSH e hosts remotos.
+- Implementar `ssh_tool.py`.
 - Implementar bloqueio inicial de comandos destrutivos explícitos.
 - Implementar distinção comportamental entre Plan e Agent.
 - Implementar bloqueio de ferramentas sensíveis em Plan.
 - Validar que comandos de risco não passam silenciosamente.
 - Validar que o modo Plan não executa ação sensível.
+- Validar host remoto permitido com comando seguro.
+- Validar host remoto bloqueado por política.
+- Validar erro estruturado de conexão SSH.
+- Validar continuidade do backend após falha remota.
 
 ### Teste remoto e fechamento do primeiro marco
 - Instalar o novo backend em outra máquina de teste.

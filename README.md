@@ -35,6 +35,7 @@ What is already working locally:
 - Session, history, and basic state persistence
 - Local validation with real TestClient/WebSocket flows for plan mode, agent mode, progressive streaming, interrupt, and a new task after interrupt
 - Security guardrails now enforce `plan` vs `agent` at execution time and block destructive or high-risk shell commands before subprocess execution
+- Remote SSH execution is also guarded by an explicit host policy before any connection attempt
 
 ## Stack
 
@@ -317,12 +318,21 @@ Shell execution now passes through a centralized security policy path before any
 - `src/backend/execution/task_runner.py` rejects blocked commands before process creation
 - `src/backend/runtime/task_execution.py` surfaces blocked commands as structured `action_response` errors and clear `system` events
 
+Remote SSH execution uses the same security layer plus host validation:
+
+- `src/backend/tools/ssh_tool.py` validates host, command, timeout, and connection/auth errors
+- `src/backend/security/policies.py` enforces a default allowlist for remote hosts
+- `MARK_ALLOWED_SSH_HOSTS` can extend the allowlist with extra hostnames or IPs
+- unapproved hosts fail before connection attempts with `HOST_NOT_ALLOWED`
+- invalid host strings fail with `HOST_INVALID`
+
 Current behavior:
 
 - `mode="plan"` is enforceable and never reaches shell execution
 - `mode="agent"` allows safe commands only after guard evaluation
 - destructive commands return structured failures such as `COMMAND_BLOCKED`
 - confirmation-required commands are rejected with `CONFIRMATION_REQUIRED` until an explicit confirmation flow exists
+- SSH commands follow the same pattern and return structured failures such as `HOST_NOT_ALLOWED`, `HOST_INVALID`, `AUTHENTICATION_FAILED`, `CONNECTION_ERROR`, or `TIMEOUT`
 
 ## Working Notes
 
