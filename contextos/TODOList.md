@@ -321,6 +321,17 @@
 
 ### Feito na rodada atual
 - Atualizar README.md do produto para o Mark Core v2.
+- Implementar `key_manager.py` para credenciais do provider `google_ai`.
+- Implementar `vertex_credentials.py` para metadados e seleção de credencial do provider `vertex_ai`.
+- Implementar `provider_store.py` para persistir metadados de credenciais e provider ativo.
+- Implementar seleção da credencial ativa por provider.
+- Implementar leitura de status seguro das credenciais.
+- Garantir que o frontend nunca receba segredos completos.
+- Implementar troca manual da credencial ativa.
+- Implementar rotação manual de credenciais via backend.
+- Implementar persistência da credencial ativa por provider.
+- Validar troca manual de credencial sem reiniciar o backend.
+- Validar que o backend não vaza segredos em logs ou respostas WebSocket.
 - Implementar `security/policies.py`.
 - Implementar `command_guard.py`.
 - Implementar `confirmations.py`.

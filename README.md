@@ -197,6 +197,12 @@ Credential resolution behavior:
 - `google_ai`: active credential from runtime store, fallback to `GOOGLE_API_KEY`
 - `vertex_ai`: active credential from runtime store, fallback to `GOOGLE_APPLICATION_CREDENTIALS` + `VERTEXAI_PROJECT` + `VERTEXAI_LOCATION`
 
+Credential selection behavior:
+
+- `set_active_credential` updates the active credential per provider and persists it to the runtime store
+- the active credential survives backend restarts because it is stored in the provider-specific credential files
+- `get_credentials_status` only returns safe metadata, never API keys, tokens, or service-account JSON content
+
 `change_provider` now fails with structured error when the target provider has no configured credential.
 
 Provider failures are normalized and surfaced as structured protocol errors, including at least:
