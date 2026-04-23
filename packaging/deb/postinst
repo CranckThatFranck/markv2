@@ -13,16 +13,24 @@ case "$1" in
 
         # Create necessary directories
         mkdir -p /var/lib/jarvis-mark
+        mkdir -p /var/lib/jarvis-mark/estado
         mkdir -p /var/log/jarvis
         mkdir -p /etc/mark-core-v2
 
         # Set ownership
+        chown -R jarvis:jarvis /opt/jarvis
         chown -R jarvis:jarvis /var/lib/jarvis-mark
         chown -R jarvis:jarvis /var/log/jarvis
 
         # Set permissions
         chmod 755 /var/lib/jarvis-mark
         chmod 755 /var/log/jarvis
+        chmod 755 /var/lib/jarvis-mark/estado
+
+        # Keep the packaged environment file readable only by privileged users.
+        chmod 640 /etc/mark-core-v2/environment || true
+
+        systemctl daemon-reload || true
 
         echo "Mark Core v2 installed successfully!"
         echo "To start the service: systemctl start mark-core-v2"

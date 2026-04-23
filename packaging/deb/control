@@ -1,18 +1,10 @@
-Format: 1.0
-Source: mark-core-v2
-Binary: mark-core-v2
-Architecture: any
-Version: 0.1.0-1
-Maintainer: CranckThatFranck <ubuntu@ip-172-31-10-82.tail943a9f.ts.net>
-Homepage: https://github.com/CranckThatFranck/markv2
-Standards-Version: 4.5.1
-Build-Depends: debhelper-compat (= 13)
-Vcs-Git: https://github.com/CranckThatFranck/markv2.git
-Vcs-Browser: https://github.com/CranckThatFranck/markv2
-
 Package: mark-core-v2
 Version: 0.1.0-1
+Section: utils
+Priority: optional
 Architecture: all
+Maintainer: CranckThatFranck <ubuntu@ip-172-31-10-82.tail943a9f.ts.net>
+Homepage: https://github.com/CranckThatFranck/markv2
 Depends: python3.12, python3.12-venv
 Recommends: systemd
 Description: Mark Core v2 Backend Service

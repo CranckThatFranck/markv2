@@ -9,6 +9,7 @@ case "$1" in
         # Stop the service if running
         systemctl stop mark-core-v2 || true
         systemctl disable mark-core-v2 || true
+        systemctl daemon-reload || true
         ;;
 
     upgrade)

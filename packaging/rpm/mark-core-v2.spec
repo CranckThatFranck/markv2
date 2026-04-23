@@ -24,12 +24,14 @@ python3.12 -m venv .venv
 %install
 mkdir -p %{buildroot}/opt/jarvis/backend
 mkdir -p %{buildroot}/etc/systemd/system
+mkdir -p %{buildroot}/etc/mark-core-v2
 mkdir -p %{buildroot}/var/lib/jarvis-mark
+mkdir -p %{buildroot}/var/lib/jarvis-mark/estado
 mkdir -p %{buildroot}/var/log/jarvis
 
 cp -r . %{buildroot}/opt/jarvis/backend/
 cp systemd/mark-core-v2.service %{buildroot}/etc/systemd/system/
-cp systemd/mark-core-v2.socket %{buildroot}/etc/systemd/system/
+cp systemd/mark-core-v2.environment %{buildroot}/etc/mark-core-v2/environment
 
 %post
 # Create jarvis user if it doesn't exist
@@ -50,12 +52,14 @@ echo "To enable on boot: systemctl enable mark-core-v2"
 %preun
 systemctl stop mark-core-v2 || true
 systemctl disable mark-core-v2 || true
+systemctl daemon-reload || true
 
 %files
 /opt/jarvis/backend
 /etc/systemd/system/mark-core-v2.service
-/etc/systemd/system/mark-core-v2.socket
+/etc/mark-core-v2/environment
 %dir /var/lib/jarvis-mark
+%dir /var/lib/jarvis-mark/estado
 %dir /var/log/jarvis
 
 %changelog
