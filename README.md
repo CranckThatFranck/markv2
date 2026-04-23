@@ -33,6 +33,7 @@ What is already working locally:
   - unknown actions
 - Centralized runtime path resolution with fallback support
 - Session, history, and basic state persistence
+- Local validation with real TestClient/WebSocket flows for plan mode, agent mode, progressive streaming, interrupt, and a new task after interrupt
 
 ## Stack
 
@@ -171,6 +172,7 @@ The WebSocket currently emits `sync_state` on connect and handles these actions:
 - `get_history`
 - `clear_session`
 - `execute_task`
+- `execute_task` accepts an optional `mode` override in the payload (`plan` or `agent`) and falls back to the current backend mode when omitted
 - `interrupt`
 - `shutdown_backend`
 

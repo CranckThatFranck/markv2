@@ -372,6 +372,15 @@ async def _handle_action(websocket: WebSocket, envelope: InputEnvelope) -> None:
             )
             return
 
+        requested_mode = envelope.payload.get("mode")
+        if requested_mode is not None:
+            if requested_mode not in {"plan", "agent"}:
+                await websocket.send_json(
+                    error_response(action=action, error_code="INVALID_PAYLOAD", message="mode inválido.").model_dump()
+                )
+                return
+            state_manager.set_mode(requested_mode)
+
         result = await task_service.execute_task(websocket, prompt.strip(), lambda: _send_sync_state(websocket))
         await websocket.send_json(result)
         await _send_sync_state(websocket)

@@ -302,7 +302,6 @@
 - Validar reconexão do frontend.
 
 ### Documentação final do primeiro marco
-- Atualizar README.md do produto para o Mark Core v2.
 - Documentar providers suportados.
 - Documentar credenciais esperadas.
 - Documentar Google AI API.
@@ -313,6 +312,9 @@
 - Documentar troubleshooting básico.
 - Atualizar DevJarvis com o protocolo v2 se necessário.
 - Revisar AgentContext final do primeiro marco do v2.
+
+### Feito na rodada atual
+- Atualizar README.md do produto para o Mark Core v2.
 
 ### Teste remoto e fechamento do primeiro marco
 - Instalar o novo backend em outra máquina de teste.
