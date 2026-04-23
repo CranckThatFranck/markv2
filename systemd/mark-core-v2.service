@@ -5,7 +5,7 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
-Type=notify
+Type=simple
 User=jarvis
 Group=jarvis
 WorkingDirectory=/opt/jarvis/backend
@@ -22,7 +22,7 @@ EnvironmentFile=-/etc/mark-core-v2/environment
 
 # Security hardening
 PrivateTmp=yes
-ProtectSystem=partial
+ProtectSystem=yes
 ProtectHome=yes
 NoNewPrivileges=yes
 
