@@ -363,3 +363,26 @@
 - Revisar TODOList.md antes do fechamento do primeiro marco.
 - Revisar pivotagens antes do fechamento do primeiro marco.
 - Fechar o primeiro marco do Mark Core v2.
+
+## Fase 2: Operacionalização e Empacotamento
+
+### Feito
+- Criar `/systemd/mark-core-v2.service` com Type=notify, User=jarvis, WorkingDirectory, ExecStart com caminho completo ao .venv, Restart=always, Logging, segurança hardened.
+- Criar `/systemd/mark-core-v2.socket` para ativação por socket (futuro).
+- Criar `/systemd/mark-core-v2.environment` template para variáveis de ambiente.
+- Criar `/scripts/install-systemd.sh` com criação de usuário jarvis, diretórios, permissões, daemon reload.
+- Criar `/scripts/uninstall-systemd.sh` com remoção segura de unit files e stop do serviço.
+- Criar infraestrutura de packaging: `/packaging/deb/`, `/packaging/rpm/`, build scripts.
+- Atualizar README.md com seção completa "Running as a Systemd Service" com instruções.
+
+### A fazer
+- Validar localmente: `systemctl daemon-reload`, `systemctl start mark-core-v2`, `systemctl status`.
+- Validar WebSocket responsivo após o serviço iniciar.
+- Validar healthcheck HTTP após o serviço iniciar.
+- Validar logs em `journalctl -u mark-core-v2`.
+- Validar `systemctl stop`, `systemctl restart`, `systemctl enable`.
+- Testar `.deb` build localmente.
+- Testar `.rpm` build localmente (se rpmbuild disponível).
+- Validar instalação via `.deb` e operação do serviço.
+- Documentar troubleshooting adicional conforme necessário.
+- Fazer commit de toda a Fase 2 após validação completa.
