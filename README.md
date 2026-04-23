@@ -366,6 +366,26 @@ Mark Core v2 can run headlessly under `systemd` without any terminal session ope
 
 #### 1. Install the Service
 
+Build and installation artifacts are kept in [`packaging/dist/`](/home/ubuntu/Documents/repos/markv2/packaging/dist).
+
+If the host does not already have the required system packages, install prerequisites first:
+
+```bash
+# Ubuntu
+sudo bash scripts/install-prereqs-ubuntu.sh
+
+# Fedora
+sudo bash scripts/install-prereqs-fedora.sh
+```
+
+Use the prerequisite scripts when:
+- you need to build `.deb` or `.rpm` artifacts on a fresh host
+- you want to guarantee Python 3.12 + packaging tools exist before installing or rebuilding the service
+
+Use the packages directly when:
+- the host already has the required system packages
+- you only need to install `mark-core-v2` from `packaging/dist/`
+
 **From source (recommended for development):**
 
 ```bash
@@ -389,7 +409,7 @@ This script:
 ```bash
 cd /path/to/markv2
 bash packaging/build-deb.sh
-sudo dpkg -i packaging/mark-core-v2_0.1.0-1_all.deb
+sudo dpkg -i packaging/dist/mark-core-v2_0.1.0-1_all.deb
 ```
 
 **From .rpm (Red Hat/CentOS/Fedora):**
@@ -397,12 +417,28 @@ sudo dpkg -i packaging/mark-core-v2_0.1.0-1_all.deb
 ```bash
 cd /path/to/markv2
 bash packaging/build-rpm.sh
-sudo rpm -i packaging/mark-core-v2-0.1.0-1.el7.x86_64.rpm
+sudo rpm -i packaging/dist/mark-core-v2-0.1.0-1.x86_64.rpm
 ```
 
 On this Ubuntu host the `.rpm` build is supported directly by local `rpmbuild`; no container or Podman layer was needed.
 
-#### 2. Configure Environment Variables
+#### 2. Host Prerequisites
+
+The generated packages install the backend files and systemd unit, but they still rely on host-level prerequisites:
+
+- Ubuntu runtime/install: `python3.12`, `python3.12-venv`, `systemd`
+- Ubuntu build: runtime prerequisites plus `rsync`, `fakeroot`, `dpkg-dev`, `rpm`
+- Fedora runtime/install: `python3.12`, `systemd`
+- Fedora build: runtime prerequisites plus `rsync`, `rpm-build`
+
+Versioned helper scripts:
+
+```bash
+scripts/install-prereqs-ubuntu.sh
+scripts/install-prereqs-fedora.sh
+```
+
+#### 3. Configure Environment Variables
 
 ```bash
 sudo nano /etc/mark-core-v2/environment
@@ -430,7 +466,7 @@ VERTEXAI_LOCATION=us-central1
 
 Package installs can take longer on first install because the service virtualenv is created in `/opt/jarvis/backend/.venv` during package installation.
 
-#### 3. Lifecycle Commands
+#### 4. Lifecycle Commands
 
 ```bash
 sudo systemctl daemon-reload
@@ -463,7 +499,7 @@ Environment="MARK_LOG_DIR=/var/log/jarvis"
 EnvironmentFile=-/etc/mark-core-v2/environment
 ```
 
-#### 4. Healthcheck and WebSocket Validation
+#### 5. Healthcheck and WebSocket Validation
 
 Healthcheck:
 
@@ -502,7 +538,7 @@ Local validation also confirmed a simple `execute_task` through the service with
 
 The `.deb` installation path was also revalidated after removing the previous manual installation and reinstalling through `dpkg -i`.
 
-#### 5. Logs and Persistence
+#### 6. Logs and Persistence
 
 Persistent paths used by the service:
 
@@ -544,6 +580,8 @@ Then verify:
 sudo test -x /opt/jarvis/backend/.venv/bin/uvicorn
 sudo stat /var/lib/jarvis-mark/estado /var/log/jarvis
 ```
+
+If package installation itself fails on a fresh host, install the OS prerequisites first with the appropriate script in `scripts/`.
 
 #### HTTP or WebSocket unreachable
 

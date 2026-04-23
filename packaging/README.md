@@ -9,6 +9,25 @@ The packaged service runs with:
 - persistent runtime data in `/var/lib/jarvis-mark/estado`
 - persistent logs in `/var/log/jarvis`
 - environment file in `/etc/mark-core-v2/environment`
+- generated artifacts in `packaging/dist/`
+
+## Dist Directory
+
+Predictable artifact location:
+
+- `.deb`: `packaging/dist/mark-core-v2_0.1.0-1_all.deb`
+- `.rpm`: `packaging/dist/mark-core-v2-0.1.0-1.x86_64.rpm`
+
+The current build scripts keep these files on disk; they are not deleted at the end of the build.
+
+## Host Prerequisites
+
+Versioned helper scripts:
+
+- `scripts/install-prereqs-ubuntu.sh`
+- `scripts/install-prereqs-fedora.sh`
+
+Use them before building or installing on fresh hosts that do not already provide Python 3.12 and the required packaging tools.
 
 ## Debian Package
 
@@ -24,15 +43,15 @@ cd packaging
 bash build-deb.sh
 ```
 
-**Result:** `mark-core-v2_0.1.0-1_all.deb`
+**Result:** `dist/mark-core-v2_0.1.0-1_all.deb`
 
-**Validated locally:** `dpkg-deb --info packaging/mark-core-v2_0.1.0-1_all.deb`
+**Validated locally:** `dpkg-deb --info packaging/dist/mark-core-v2_0.1.0-1_all.deb`
 
-**Validated locally:** real reinstall with `sudo dpkg -i packaging/mark-core-v2_0.1.0-1_all.deb` followed by `systemctl start/status`, `curl /health`, and WebSocket `execute_task`.
+**Validated locally:** real reinstall with `sudo dpkg -i packaging/dist/mark-core-v2_0.1.0-1_all.deb` followed by `systemctl start/status`, `curl /health`, and WebSocket `execute_task`.
 
 **Install:**
 ```bash
-sudo dpkg -i packaging/mark-core-v2_0.1.0-1_all.deb
+sudo dpkg -i packaging/dist/mark-core-v2_0.1.0-1_all.deb
 sudo systemctl start mark-core-v2
 ```
 
@@ -48,13 +67,13 @@ cd packaging
 bash build-rpm.sh
 ```
 
-**Result:** `mark-core-v2-0.1.0-1...rpm` in `packaging/`
+**Result:** `dist/mark-core-v2-0.1.0-1.x86_64.rpm`
 
 Validated on this Ubuntu host with local `rpmbuild`, so no container or Podman wrapper is required here.
 
 **Install:**
 ```bash
-sudo rpm -i mark-core-v2-0.1.0-1.el7.x86_64.rpm
+sudo rpm -i packaging/dist/mark-core-v2-0.1.0-1.x86_64.rpm
 sudo systemctl start mark-core-v2
 ```
 
@@ -67,6 +86,16 @@ sudo systemctl start mark-core-v2
 5. Directories created: `/var/lib/jarvis-mark/estado` and `/var/log/jarvis`
 6. A fresh runtime virtualenv is created in `/opt/jarvis/backend/.venv` on package install
 7. Service ready for `systemctl daemon-reload`, `start`, `stop`, `restart`, `status`, and `enable`
+
+## What The Packages Do Not Install Automatically
+
+The service packages still depend on host-level prerequisites:
+
+- Debian/Ubuntu install path needs `python3.12` and `python3.12-venv`
+- Fedora/RPM install path needs `python3.12`
+- Build hosts also need packaging tools such as `fakeroot`, `dpkg-dev`, `rpm-build`, and `rsync`
+
+If those are missing, use the helper scripts in `scripts/` before building or installing.
 
 ## Environment Configuration
 

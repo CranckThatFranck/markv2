@@ -383,6 +383,8 @@
 - Testar `.deb` build localmente.
 - Validar instalação via `.deb` e operação do serviço.
 - Testar `.rpm` build localmente (se rpmbuild disponível).
+- Consolidar caminho previsível para artefatos de packaging.
+- Documentar pré-requisitos de host e instalação operacional dos pacotes.
 
 ### A fazer
 - Documentar troubleshooting adicional conforme necessário.
