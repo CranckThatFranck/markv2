@@ -133,6 +133,50 @@ Current frontend behavior:
 
 The frontend does not persist operational state on its own. Session, history, provider, model, and credential status continue to come from the backend.
 
+## Build and Install the Packaged Frontend
+
+The frontend package is kept separate from the backend package because the desktop client can point to the local backend or to another host in the future.
+
+Frontend artifacts are generated in:
+
+- `.deb`: `packaging/dist/mark-core-v2-frontend_0.1.0-1_all.deb`
+- `.rpm`: `packaging/dist/mark-core-v2-frontend-0.1.0-1.noarch.rpm`
+
+Build commands:
+
+```bash
+cd packaging
+bash build-frontend-deb.sh
+bash build-frontend-rpm.sh
+```
+
+Install on Ubuntu/Debian:
+
+```bash
+sudo dpkg -i packaging/dist/mark-core-v2-frontend_0.1.0-1_all.deb
+```
+
+Install on Fedora/RPM hosts:
+
+```bash
+sudo rpm -i packaging/dist/mark-core-v2-frontend-0.1.0-1.noarch.rpm
+```
+
+Installed frontend paths:
+
+- application code: `/opt/jarvis/frontend`
+- launcher: `/usr/bin/mark-core-v2-frontend`
+- desktop entry: `/usr/share/applications/mark-core-v2-frontend.desktop`
+- icon: `/usr/share/icons/hicolor/scalable/apps/mark-core-v2-frontend.svg`
+
+Open the installed app with:
+
+```bash
+mark-core-v2-frontend
+```
+
+The package creates `/opt/jarvis/frontend/.venv` during installation and installs the Python dependency from `requirements-frontend.txt`.
+
 ## Test the Current WebSocket
 
 Run this from the repository root after activating `.venv`:
@@ -587,6 +631,17 @@ The minimal frontend v2 has been validated locally against the installed `mark-c
 
 The `.deb` installation path was also revalidated after removing the previous manual installation and reinstalling through `dpkg -i`.
 
+The packaged frontend was also validated locally after installation from `.deb` with these real flows:
+
+- launch via `/usr/bin/mark-core-v2-frontend`
+- import and run from `/opt/jarvis/frontend/.venv/bin/python`
+- connect to the backend already running in `systemd`
+- receive `sync_state` from the installed app
+- execute real inference via `google_ai` with final answer `azul`
+- execute real inference via `vertex_ai` with final answer `verde`
+- switch provider and model from the installed app
+- reconnect without losing the backend session state
+
 #### 6. Logs and Persistence
 
 Persistent paths used by the service:
@@ -648,6 +703,8 @@ After changing the file:
 ```bash
 sudo systemctl restart mark-core-v2
 ```
+
+For Vertex AI in the systemd service, the file pointed to by `GOOGLE_APPLICATION_CREDENTIALS` must be readable by the `jarvis` service user. A path inside `/etc/mark-core-v2/` with restricted permissions is the safest operational choice.
 
 ### Uninstallation
 

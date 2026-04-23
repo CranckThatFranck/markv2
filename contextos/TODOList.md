@@ -268,8 +268,6 @@
 - Validar `interrupt`.
 
 ### Adaptação do frontend atual ao v2
-- Validar Google AI API via frontend.
-- Validar Vertex AI via frontend.
 
 ### Empacotamento e instalação
 - Atualizar empacotamento `.deb` do backend para o novo core.
@@ -400,7 +398,23 @@
 - Validar `execute_task` via frontend.
 - Validar `interrupt` via frontend.
 - Validar reconexão e reidratação de sessão via frontend.
-
-### A fazer
 - Validar Google AI API via frontend.
 - Validar Vertex AI via frontend.
+
+## Fase 4: Empacotamento operacional do frontend v2
+
+### Feito
+- Empacotar o frontend v2 dentro do monorepo.
+- Gerar `.deb` do frontend v2.
+- Gerar `.rpm` do frontend v2.
+- Incluir launcher `.desktop`, ícone e script de execução do frontend.
+- Atualizar scripts de pré-requisitos do host para o frontend desktop.
+- Atualizar README.md com instruções reais de build, instalação e uso do frontend empacotado.
+- Atualizar `packaging/README.md` com foco em build e artefatos do frontend.
+- Validar instalação local do frontend empacotado via `.deb`.
+- Validar abertura da aplicação instalada.
+- Validar leitura de `sync_state` pelo frontend instalado.
+- Validar inferência real via `google_ai` no frontend instalado.
+- Validar inferência real via `vertex_ai` no frontend instalado.
+- Validar troca de provider/modelo pelo frontend instalado.
+- Validar reconexão do frontend instalado sem perder sessão.

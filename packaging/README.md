@@ -1,6 +1,6 @@
 # Packaging for Mark Core v2
 
-This directory contains the minimum operational packaging for the Mark Core v2 backend service.
+This directory contains the minimum operational packaging for the Mark Core v2 backend service and the frontend v2 desktop client.
 
 The packaged service runs with:
 
@@ -15,8 +15,10 @@ The packaged service runs with:
 
 Predictable artifact location:
 
-- `.deb`: `packaging/dist/mark-core-v2_0.1.0-1_all.deb`
-- `.rpm`: `packaging/dist/mark-core-v2-0.1.0-1.x86_64.rpm`
+- backend `.deb`: `packaging/dist/mark-core-v2_0.1.0-1_all.deb`
+- backend `.rpm`: `packaging/dist/mark-core-v2-0.1.0-1.x86_64.rpm`
+- frontend `.deb`: `packaging/dist/mark-core-v2-frontend_0.1.0-1_all.deb`
+- frontend `.rpm`: `packaging/dist/mark-core-v2-frontend-0.1.0-1.noarch.rpm`
 
 The current build scripts keep these files on disk; they are not deleted at the end of the build.
 
@@ -27,7 +29,75 @@ Versioned helper scripts:
 - `scripts/install-prereqs-ubuntu.sh`
 - `scripts/install-prereqs-fedora.sh`
 
-Use them before building or installing on fresh hosts that do not already provide Python 3.12 and the required packaging tools.
+Use them before building or installing on fresh hosts that do not already provide Python 3.12, Tkinter, and the required packaging tools.
+
+## Frontend Packages
+
+The packaged frontend installs:
+
+- code in `/opt/jarvis/frontend`
+- virtualenv in `/opt/jarvis/frontend/.venv`
+- launcher in `/usr/bin/mark-core-v2-frontend`
+- desktop entry in `/usr/share/applications/mark-core-v2-frontend.desktop`
+- icon in `/usr/share/icons/hicolor/scalable/apps/mark-core-v2-frontend.svg`
+
+The frontend package does not install or own the backend service. It assumes an already reachable backend, defaulting to `ws://127.0.0.1:8000/ws`, but the host remains configurable inside the app.
+
+### Frontend Debian Package
+
+**Files:**
+- `frontend/deb/control`
+- `frontend/deb/postinst`
+- `frontend/deb/prerm`
+- `frontend/bin/mark-core-v2-frontend`
+- `frontend/desktop/mark-core-v2-frontend.desktop`
+- `frontend/assets/mark-core-v2-frontend.svg`
+- `build-frontend-deb.sh`
+
+**Build:**
+```bash
+cd packaging
+bash build-frontend-deb.sh
+```
+
+**Result:** `dist/mark-core-v2-frontend_0.1.0-1_all.deb`
+
+**Validated locally:** `dpkg-deb --info packaging/dist/mark-core-v2-frontend_0.1.0-1_all.deb`
+
+**Validated locally:** real install with `sudo dpkg -i packaging/dist/mark-core-v2-frontend_0.1.0-1_all.deb`, launcher execution via `/usr/bin/mark-core-v2-frontend`, and frontend operation from the installed path with `sync_state`, provider/model switch, `google_ai`, `vertex_ai`, and reconnect.
+
+**Install:**
+```bash
+sudo dpkg -i packaging/dist/mark-core-v2-frontend_0.1.0-1_all.deb
+mark-core-v2-frontend
+```
+
+### Frontend RPM Package
+
+**Files:**
+- `frontend/rpm/mark-core-v2-frontend.spec`
+- `build-frontend-rpm.sh`
+
+**Build:**
+```bash
+cd packaging
+bash build-frontend-rpm.sh
+```
+
+**Result:** `dist/mark-core-v2-frontend-0.1.0-1.noarch.rpm`
+
+Validated on this Ubuntu host with local `rpmbuild`, so no container or Podman wrapper was needed here.
+
+**Inspect locally:**
+```bash
+rpm -qpi packaging/dist/mark-core-v2-frontend-0.1.0-1.noarch.rpm
+```
+
+**Install on RPM hosts:**
+```bash
+sudo rpm -i packaging/dist/mark-core-v2-frontend-0.1.0-1.noarch.rpm
+mark-core-v2-frontend
+```
 
 ## Debian Package
 
@@ -92,7 +162,9 @@ sudo systemctl start mark-core-v2
 The service packages still depend on host-level prerequisites:
 
 - Debian/Ubuntu install path needs `python3.12` and `python3.12-venv`
+- Debian/Ubuntu frontend path also needs `python3-tk`
 - Fedora/RPM install path needs `python3.12`
+- Fedora/RPM frontend path also needs `python3-tkinter`
 - Build hosts also need packaging tools such as `fakeroot`, `dpkg-dev`, `rpm-build`, and `rsync`
 
 If those are missing, use the helper scripts in `scripts/` before building or installing.
@@ -112,6 +184,8 @@ Supported variables:
 - `GOOGLE_APPLICATION_CREDENTIALS`
 - `VERTEXAI_PROJECT`
 - `VERTEXAI_LOCATION`
+
+For the backend service, the file referenced by `GOOGLE_APPLICATION_CREDENTIALS` must be readable by the `jarvis` user when `vertex_ai` is used through `systemd`.
 
 ## Uninstallation
 
