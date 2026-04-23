@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Runtime and state
+.mark-runtime/
+*.db
+*.json
+
+# Test and temporary scripts
+debug_events.py
+final_sync_state_coherence_test.py
+test_context_and_rules.py
+test_integration_full.py
+validate_new_features.py
+
+# OS
+.DS_Store
+.env.local
+.env.*.local
