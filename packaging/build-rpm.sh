@@ -6,12 +6,13 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+DIST_DIR="${SCRIPT_DIR}/dist"
 PACKAGE_NAME="mark-core-v2"
 VERSION="0.1.0"
 RELEASE="1"
-RPM_FILE="${PACKAGE_NAME}-${VERSION}-${RELEASE}.el7.x86_64.rpm"
 
 echo "Building RPM package..."
+mkdir -p "$DIST_DIR"
 
 if ! command -v rpmbuild >/dev/null 2>&1; then
     echo "rpmbuild not found. Install rpm-build to generate the .rpm artifact."
@@ -47,10 +48,11 @@ cd "$WORK_DIR"
 rpmbuild -ba --define "_topdir $WORK_DIR" "SPECS/mark-core-v2.spec"
 
 # Copy result to current directory
-cp "$WORK_DIR/RPMS"/*/*.rpm "$SCRIPT_DIR/" || cp "$WORK_DIR/RPMS"/*/*.noarch.rpm "$SCRIPT_DIR/" 2>/dev/null || true
+cp "$WORK_DIR/RPMS"/*/*.rpm "$DIST_DIR/" || cp "$WORK_DIR/RPMS"/*/*.noarch.rpm "$DIST_DIR/" 2>/dev/null || true
 
-echo "RPM created: $RPM_FILE (or similar)"
-echo "Install with: sudo rpm -i $RPM_FILE"
+RPM_OUTPUT="$(find "$DIST_DIR" -maxdepth 1 -type f -name "${PACKAGE_NAME}-${VERSION}-${RELEASE}*.rpm" | sort | tail -n 1)"
+echo "RPM created: ${RPM_OUTPUT:-<not found>}"
+echo "Install with: sudo rpm -i ${RPM_OUTPUT:-$DIST_DIR/${PACKAGE_NAME}-${VERSION}-${RELEASE}.x86_64.rpm}"
 
 # Cleanup
 rm -rf "$WORK_DIR"

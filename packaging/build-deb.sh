@@ -6,6 +6,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+DIST_DIR="${SCRIPT_DIR}/dist"
 WORK_DIR=$(mktemp -d)
 PACKAGE_NAME="mark-core-v2"
 VERSION="0.1.0"
@@ -14,6 +15,7 @@ DEB_FILE="${PACKAGE_NAME}_${VERSION}-${RELEASE}_all.deb"
 
 echo "Building Debian package..."
 echo "Working directory: $WORK_DIR"
+mkdir -p "$DIST_DIR"
 
 # Create package structure
 DEBIAN_DIR="$WORK_DIR/DEBIAN"
@@ -42,10 +44,10 @@ cp "$REPO_ROOT/systemd/mark-core-v2.service" "$WORK_DIR/etc/systemd/system/"
 cp "$REPO_ROOT/systemd/mark-core-v2.environment" "$WORK_DIR/etc/mark-core-v2/environment"
 
 # Create the package
-fakeroot dpkg-deb --root-owner-group --build "$WORK_DIR" "$SCRIPT_DIR/$DEB_FILE"
+fakeroot dpkg-deb --root-owner-group --build "$WORK_DIR" "$DIST_DIR/$DEB_FILE"
 
-echo "Package created: $SCRIPT_DIR/$DEB_FILE"
-echo "Install with: sudo dpkg -i $DEB_FILE"
+echo "Package created: $DIST_DIR/$DEB_FILE"
+echo "Install with: sudo dpkg -i $DIST_DIR/$DEB_FILE"
 
 # Cleanup
 rm -rf "$WORK_DIR"
