@@ -1,0 +1,13 @@
+# Mark Core v2 Environment Configuration
+# Place this file at /etc/mark-core-v2/environment if you need custom settings
+# Default values are set in the service unit file
+
+# Google AI API key (optional, can also be set system-wide)
+# GOOGLE_API_KEY=your-api-key-here
+
+# Vertex AI service account credentials path
+# GOOGLE_APPLICATION_CREDENTIALS=/etc/mark-core-v2/vertex-credentials.json
+
+# Vertex AI project and location
+# VERTEXAI_PROJECT=your-project-id
+# VERTEXAI_LOCATION=us-central1

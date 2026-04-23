@@ -1,0 +1,41 @@
+#!/bin/bash
+set -e
+
+# Debian postinst script for mark-core-v2
+# This script runs after the package is installed
+
+case "$1" in
+    configure)
+        # Create jarvis user if it doesn't exist
+        if ! id -u jarvis > /dev/null 2>&1; then
+            useradd --system --home /var/lib/jarvis-mark --no-create-home jarvis
+        fi
+
+        # Create necessary directories
+        mkdir -p /var/lib/jarvis-mark
+        mkdir -p /var/log/jarvis
+        mkdir -p /etc/mark-core-v2
+
+        # Set ownership
+        chown -R jarvis:jarvis /var/lib/jarvis-mark
+        chown -R jarvis:jarvis /var/log/jarvis
+
+        # Set permissions
+        chmod 755 /var/lib/jarvis-mark
+        chmod 755 /var/log/jarvis
+
+        echo "Mark Core v2 installed successfully!"
+        echo "To start the service: systemctl start mark-core-v2"
+        echo "To enable on boot: systemctl enable mark-core-v2"
+        ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+        ;;
+
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+        ;;
+esac
+
+exit 0

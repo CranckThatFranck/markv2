@@ -1,0 +1,30 @@
+[Unit]
+Description=Mark Core v2 Backend Service
+Documentation=https://github.com/CranckThatFranck/markv2
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+User=jarvis
+Group=jarvis
+WorkingDirectory=/opt/jarvis/backend
+ExecStart=/opt/jarvis/backend/.venv/bin/uvicorn src.backend.main:app --host 0.0.0.0 --port 8000
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mark-core-v2
+
+Environment="MARK_STATE_DIR=/var/lib/jarvis-mark"
+EnvironmentFile=-/etc/mark-core-v2/environment
+
+# Security hardening
+PrivateTmp=yes
+ProtectSystem=partial
+ProtectHome=yes
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target

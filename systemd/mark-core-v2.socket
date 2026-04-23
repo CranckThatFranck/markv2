@@ -1,0 +1,10 @@
+[Unit]
+Description=Mark Core v2 Backend WebSocket
+Before=mark-core-v2.service
+
+[Socket]
+ListenStream=8000
+Accept=no
+
+[Install]
+WantedBy=sockets.target
