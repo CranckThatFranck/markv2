@@ -2,6 +2,12 @@
 # Place this file at /etc/mark-core-v2/environment if you need custom settings
 # Default values are set in the service unit file
 
+# Runtime persistence directory used by the backend.
+# MARK_STATE_DIR=/var/lib/jarvis-mark/estado
+
+# Persistent log directory used by the backend.
+# MARK_LOG_DIR=/var/log/jarvis
+
 # Google AI API key (optional, can also be set system-wide)
 # GOOGLE_API_KEY=your-api-key-here
 

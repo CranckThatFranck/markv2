@@ -3,22 +3,22 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
-from pathlib import Path
+from datetime import datetime, timezone
+
+from src.backend.logging.logger import resolve_log_dir
 
 
 class TaskLogger:
     """Registra eventos de execução de tarefas."""
 
-    def __init__(self) -> None:
-        self.log_dir = Path("/tmp/mark-core-v2-logs")
-        self.log_dir.mkdir(exist_ok=True, parents=True)
+    def __init__(self, log_dir: str | None = None) -> None:
+        self.log_dir = resolve_log_dir(log_dir)
 
     def log_task_execution(self, task_id: str, event_type: str, data: dict[str, object]) -> None:
         """Registra um evento de execução de tarefa."""
 
         log_file = self.log_dir / "task_execution.log"
-        timestamp = datetime.utcnow().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         entry = {
             "timestamp": timestamp,
             "task_id": task_id,
@@ -86,15 +86,14 @@ class TaskLogger:
 class BackendLogger:
     """Registra eventos gerais do backend."""
 
-    def __init__(self) -> None:
-        self.log_dir = Path("/tmp/mark-core-v2-logs")
-        self.log_dir.mkdir(exist_ok=True, parents=True)
+    def __init__(self, log_dir: str | None = None) -> None:
+        self.log_dir = resolve_log_dir(log_dir)
 
     def log_startup(self, version: str, config_path: str, rules_path: str) -> None:
         """Registra o startup do backend."""
 
         log_file = self.log_dir / "backend.log"
-        timestamp = datetime.utcnow().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         entry = {
             "timestamp": timestamp,
             "event": "startup",
@@ -109,7 +108,7 @@ class BackendLogger:
         """Registra uma execução de tarefa."""
 
         log_file = self.log_dir / "backend.log"
-        timestamp = datetime.utcnow().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         entry = {
             "timestamp": timestamp,
             "event": "execute_task",
@@ -125,7 +124,7 @@ class BackendLogger:
         """Registra uma interrupção."""
 
         log_file = self.log_dir / "backend.log"
-        timestamp = datetime.utcnow().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         entry = {
             "timestamp": timestamp,
             "event": "interrupt",
@@ -138,7 +137,7 @@ class BackendLogger:
         """Registra um erro."""
 
         log_file = self.log_dir / "errors.log"
-        timestamp = datetime.utcnow().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         entry = {
             "timestamp": timestamp,
             "error_code": error_code,

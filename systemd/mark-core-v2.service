@@ -10,15 +10,19 @@ User=jarvis
 Group=jarvis
 WorkingDirectory=/opt/jarvis/backend
 ExecStart=/opt/jarvis/backend/.venv/bin/uvicorn src.backend.main:app --host 0.0.0.0 --port 8000
-ExecReload=/bin/kill -HUP $MAINPID
-Restart=always
+Restart=on-failure
 RestartSec=5
+TimeoutStopSec=30
+UMask=0027
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=mark-core-v2
 
-Environment="MARK_STATE_DIR=/var/lib/jarvis-mark"
+Environment="MARK_STATE_DIR=/var/lib/jarvis-mark/estado"
+Environment="MARK_LOG_DIR=/var/log/jarvis"
 EnvironmentFile=-/etc/mark-core-v2/environment
+StateDirectory=jarvis-mark
+LogsDirectory=jarvis
 
 # Security hardening
 PrivateTmp=yes
