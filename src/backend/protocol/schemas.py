@@ -59,6 +59,20 @@ class ConsoleEvent(BaseEvent):
     content: str
 
 
+class ProviderEvent(BaseEvent):
+    type: Literal["provider_event"] = "provider_event"
+    event: str
+    provider: str | None = None
+    from_provider: str | None = None
+    to_provider: str | None = None
+    from_model: str | None = None
+    to_model: str | None = None
+    from_credential_id: str | None = None
+    to_credential_id: str | None = None
+    level: str | None = None
+    reason: str | None = None
+
+
 class SyncStateEvent(BaseEvent):
     type: Literal["sync_state"] = "sync_state"
     state: dict[str, Any]

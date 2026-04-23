@@ -216,6 +216,24 @@ Provider failures are normalized and surfaced as structured protocol errors, inc
 
 The current backend has been validated with real positive WebSocket `execute_task` inference for both providers using the active environment variables.
 
+## Fallback Policy Status
+
+Automatic fallback is now conservative and explicit, with no cross-provider fallback by default:
+
+- credential fallback inside the same provider (`google_ai` and `vertex_ai`)
+- model fallback inside the same provider
+- provider fallback policy remains explicit and disabled by default
+
+Fallback decisions are emitted in stream as `provider_event` and persisted in task logs without secrets.
+
+Current observed fallback events in local validation:
+
+- `fallback_credential` for `google_ai` (`google_ai_bad` -> `env:GOOGLE_API_KEY`)
+- `fallback_credential` for `vertex_ai` (`vertex_ai_bad` -> `env:VERTEXAI`)
+- `fallback_model` in `google_ai` from a custom nonexistent model to builtin candidates
+
+When no fallback path is available, the backend returns a structured `action_response` error (`success=false`, `error_code`, `message`) instead of silent failure.
+
 ## Tools And Execution Path
 
 `execute_task` now supports a minimal agentic decision path with two structured outcomes:

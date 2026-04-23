@@ -15,6 +15,7 @@ from src.backend.agent.planner import Planner
 from src.backend.agent.tool_router import ToolRouter
 from src.backend.execution.task_runner import TaskRunner
 from src.backend.logging.task_logger import BackendLogger, TaskLogger
+from src.backend.models.fallback import FallbackPolicy
 from src.backend.models.providers.google_ai_client import GoogleAIClient
 from src.backend.models.providers.vertex_ai_client import VertexAIClient
 from src.backend.models.router import ModelRouter
@@ -73,6 +74,7 @@ class TaskExecutionService:
         self.task_logger = TaskLogger()
         self.backend_logger = BackendLogger()
         self.confirmation_policy = ConfirmationPolicy()
+        self.fallback_policy = FallbackPolicy()
 
     @property
     def rules_file(self) -> str:
@@ -93,33 +95,159 @@ class TaskExecutionService:
         status = self.credential_runtime.get_credentials_status().get(provider, {})
         return bool(status.get("configured"))
 
-    async def _execute_with_provider(self, provider: str, model_id: str, prompt: str) -> tuple[bool, str, str]:
-        if provider == "google_ai":
-            google_api_key = self.credential_runtime.get_google_api_key()
-            result = await asyncio.to_thread(
-                GoogleAIClient(api_key=google_api_key).generate_text,
-                prompt,
-                model_id,
-            )
-        elif provider == "vertex_ai":
-            active_vertex = self.credential_runtime.get_vertex_active_credential()
-            if not active_vertex:
-                return False, "AUTHENTICATION_FAILED", "Credenciais Vertex AI ausentes."
-            result = await asyncio.to_thread(
-                VertexAIClient(
-                    credentials_path=active_vertex["service_account_path"],
-                    project=active_vertex["project"],
-                    location=active_vertex["location"],
-                ).generate_text,
-                prompt,
-                model_id,
-            )
-        else:
-            return False, "PROVIDER_NOT_FOUND", "Provider desconhecido."
+    async def _send_provider_event(self, websocket: WebSocket, payload: dict[str, object]) -> None:
+        await websocket.send_json({"type": "provider_event", "protocol_version": "2.0", **payload})
 
-        if result.ok:
-            return True, "OK", result.text or ""
-        return False, result.error_code or "PROVIDER_ERROR", result.message or "Falha no provider."
+    async def _try_google_ai(self, prompt: str, model_id: str, api_key: str) -> tuple[bool, str, str]:
+        result = await asyncio.to_thread(GoogleAIClient(api_key=api_key).generate_text, prompt, model_id)
+        return result.ok, result.error_code or "PROVIDER_ERROR", result.text or result.message or "Falha no provider."
+
+    async def _try_vertex_ai(self, prompt: str, model_id: str, credential: dict[str, str]) -> tuple[bool, str, str]:
+        result = await asyncio.to_thread(
+            VertexAIClient(
+                credentials_path=credential["service_account_path"],
+                project=credential["project"],
+                location=credential["location"],
+            ).generate_text,
+            prompt,
+            model_id,
+        )
+        return result.ok, result.error_code or "PROVIDER_ERROR", result.text or result.message or "Falha no provider."
+
+    async def _execute_google_with_fallback(self, context: TaskContext, websocket: WebSocket) -> tuple[bool, str, str]:
+        credential_ids = self.credential_runtime.list_google_credential_ids()
+        model_candidates = [context.model_id, *self.model_router.registry.fallback_models_for_provider("google_ai", context.model_id)]
+        current_credential_id = self.credential_runtime.key_manager.get_active_credential_id()
+        last_error_code = "PROVIDER_ERROR"
+        last_message = "Falha no provider."
+
+        for credential_id in credential_ids:
+            api_key = self.credential_runtime.get_google_api_key_for_credential(credential_id)
+            if not api_key:
+                continue
+            ok, error_code, message = await self._try_google_ai(context.prompt, context.model_id, api_key)
+            if ok:
+                if credential_id != current_credential_id:
+                    payload = {
+                        "event": "fallback_credential",
+                        "provider": "google_ai",
+                        "from_provider": "google_ai",
+                        "to_provider": "google_ai",
+                        "from_model": context.model_id,
+                        "to_model": context.model_id,
+                        "from_credential_id": current_credential_id,
+                        "to_credential_id": credential_id,
+                        "level": "credential",
+                        "reason": error_code if error_code != "PROVIDER_ERROR" else "PRIMARY_CREDENTIAL_FAILED",
+                    }
+                    await self._send_provider_event(websocket, payload)
+                    self.task_logger.log_provider_event(context.task_id, "provider_event", payload)
+                    self.credential_runtime.set_active_credential("google_ai", credential_id)
+                return True, "OK", message
+
+            last_error_code = error_code
+            last_message = message
+            if not self.fallback_policy.is_credential_failure(error_code):
+                break
+
+        if self.fallback_policy.is_model_failure(last_error_code):
+            active_credential_id = self.credential_runtime.key_manager.get_active_credential_id()
+            active_api_key = self.credential_runtime.get_google_api_key_for_credential(active_credential_id or "")
+            if active_api_key:
+                for candidate_model in model_candidates[1:]:
+                    payload = {
+                        "event": "fallback_model",
+                        "provider": "google_ai",
+                        "from_provider": "google_ai",
+                        "to_provider": "google_ai",
+                        "from_model": context.model_id,
+                        "to_model": candidate_model,
+                        "from_credential_id": active_credential_id,
+                        "to_credential_id": active_credential_id,
+                        "level": "model",
+                        "reason": last_error_code,
+                    }
+                    await self._send_provider_event(websocket, payload)
+                    self.task_logger.log_provider_event(context.task_id, "provider_event", payload)
+                    ok, error_code, message = await self._try_google_ai(context.prompt, candidate_model, active_api_key)
+                    if ok:
+                        self.state_manager.set_model_and_provider(candidate_model, "google_ai")
+                        return True, "OK", message
+                    last_error_code = error_code
+                    last_message = message
+
+        return False, last_error_code, last_message
+
+    async def _execute_vertex_with_fallback(self, context: TaskContext, websocket: WebSocket) -> tuple[bool, str, str]:
+        credential_ids = self.credential_runtime.list_vertex_credential_ids()
+        model_candidates = [context.model_id, *self.model_router.registry.fallback_models_for_provider("vertex_ai", context.model_id)]
+        current_credential_id = self.credential_runtime.vertex_manager.get_active_credential_id()
+        last_error_code = "PROVIDER_ERROR"
+        last_message = "Falha no provider."
+
+        for credential_id in credential_ids:
+            credential = self.credential_runtime.get_vertex_credential(credential_id)
+            if credential is None:
+                continue
+            ok, error_code, message = await self._try_vertex_ai(context.prompt, context.model_id, credential)
+            if ok:
+                if credential_id != current_credential_id:
+                    payload = {
+                        "event": "fallback_credential",
+                        "provider": "vertex_ai",
+                        "from_provider": "vertex_ai",
+                        "to_provider": "vertex_ai",
+                        "from_model": context.model_id,
+                        "to_model": context.model_id,
+                        "from_credential_id": current_credential_id,
+                        "to_credential_id": credential_id,
+                        "level": "credential",
+                        "reason": error_code if error_code != "PROVIDER_ERROR" else "PRIMARY_CREDENTIAL_FAILED",
+                    }
+                    await self._send_provider_event(websocket, payload)
+                    self.task_logger.log_provider_event(context.task_id, "provider_event", payload)
+                    self.credential_runtime.set_active_credential("vertex_ai", credential_id)
+                return True, "OK", message
+
+            last_error_code = error_code
+            last_message = message
+            if not self.fallback_policy.is_credential_failure(error_code):
+                break
+
+        if self.fallback_policy.is_model_failure(last_error_code):
+            active_credential_id = self.credential_runtime.vertex_manager.get_active_credential_id()
+            active_credential = self.credential_runtime.get_vertex_credential(active_credential_id or "")
+            if active_credential:
+                for candidate_model in model_candidates[1:]:
+                    payload = {
+                        "event": "fallback_model",
+                        "provider": "vertex_ai",
+                        "from_provider": "vertex_ai",
+                        "to_provider": "vertex_ai",
+                        "from_model": context.model_id,
+                        "to_model": candidate_model,
+                        "from_credential_id": active_credential_id,
+                        "to_credential_id": active_credential_id,
+                        "level": "model",
+                        "reason": last_error_code,
+                    }
+                    await self._send_provider_event(websocket, payload)
+                    self.task_logger.log_provider_event(context.task_id, "provider_event", payload)
+                    ok, error_code, message = await self._try_vertex_ai(context.prompt, candidate_model, active_credential)
+                    if ok:
+                        self.state_manager.set_model_and_provider(candidate_model, "vertex_ai")
+                        return True, "OK", message
+                    last_error_code = error_code
+                    last_message = message
+
+        return False, last_error_code, last_message
+
+    async def _execute_with_provider(self, context: TaskContext, websocket: WebSocket) -> tuple[bool, str, str]:
+        if context.provider == "google_ai":
+            return await self._execute_google_with_fallback(context, websocket)
+        if context.provider == "vertex_ai":
+            return await self._execute_vertex_with_fallback(context, websocket)
+        return False, "PROVIDER_NOT_FOUND", "Provider desconhecido."
 
     async def _shell_tool_handler(self, tool_input: dict[str, object]) -> dict[str, object]:
         command = str(tool_input.get("command", "")).strip()
@@ -292,7 +420,7 @@ class TaskExecutionService:
             plan_message = self.planner.render_plan_message(context.prompt, context.mode, rules_applied)
             return True, "OK", plan_message
 
-        return await self._execute_with_provider(context.provider, context.model_id, context.prompt)
+        return await self._execute_with_provider(context, websocket)
 
     async def execute_task(
         self,

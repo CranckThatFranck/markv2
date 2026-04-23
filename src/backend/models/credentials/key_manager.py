@@ -54,11 +54,31 @@ class KeyManager:
         self._save()
 
     def set_active(self, credential_id: str) -> None:
+        if credential_id == "env:GOOGLE_API_KEY":
+            for key in self._credentials:
+                self._credentials[key].active = False
+            self._save()
+            return
         if credential_id not in self._credentials:
             raise ValueError("CREDENTIAL_NOT_FOUND")
         for key in self._credentials:
             self._credentials[key].active = key == credential_id
         self._save()
+
+    def list_credential_ids(self) -> list[str]:
+        return sorted(self._credentials.keys())
+
+    def get_active_credential_id(self) -> str | None:
+        active = next((cred.credential_id for cred in self._credentials.values() if cred.active), None)
+        if active:
+            return active
+        return "env:GOOGLE_API_KEY" if os.getenv("GOOGLE_API_KEY") else None
+
+    def get_api_key(self, credential_id: str) -> str | None:
+        if credential_id == "env:GOOGLE_API_KEY":
+            return os.getenv("GOOGLE_API_KEY")
+        credential = self._credentials.get(credential_id)
+        return credential.api_key if credential else None
 
     def get_active_api_key(self) -> str | None:
         for cred in self._credentials.values():

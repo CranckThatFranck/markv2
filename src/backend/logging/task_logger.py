@@ -77,6 +77,11 @@ class TaskLogger:
             },
         )
 
+    def log_provider_event(self, task_id: str, event_name: str, data: dict[str, object]) -> None:
+        """Registra evento de provider, fallback ou rotação sem segredos."""
+
+        self.log_task_execution(task_id, event_name, data)
+
 
 class BackendLogger:
     """Registra eventos gerais do backend."""

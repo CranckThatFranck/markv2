@@ -168,6 +168,16 @@
 - Implementar TaskContextBuilder para construção explícita de contexto.
 - Implementar TaskLogger para rastreamento de execução de tarefas.
 - Implementar BackendLogger para rastreamento de eventos do backend.
+- Implementar fallback entre modelos do mesmo provider.
+- Implementar fallback entre credenciais do mesmo provider.
+- Implementar registro em log de fallback de modelo.
+- Implementar registro em log de fallback de credencial.
+- Implementar evento `provider_event` para fallback.
+- Validar fallback de credencial no `google_ai`.
+- Validar fallback de credencial no `vertex_ai`.
+- Validar fallback de modelo no mesmo provider.
+- Validar emissão de `provider_event` para fallback.
+- Validar erro estruturado quando não houver fallback possível.
 ## A fazer
 
 ### Preparação e coerência documental do v2
@@ -203,12 +213,7 @@
 - Validar que o backend não vaza segredos em logs ou respostas WebSocket.
 
 ### Política de fallback
-- Implementar fallback entre modelos do mesmo provider.
-- Implementar fallback entre credenciais do mesmo provider.
 - Implementar política explícita de fallback entre providers, desabilitada por padrão.
-- Implementar registro em log de fallback de modelo.
-- Implementar registro em log de fallback de credencial.
-- Implementar evento `provider_event` para fallback.
 - Validar fallback por quota/rate limit no `google_ai`.
 - Validar fallback por falha de região/modelo no `vertex_ai`.
 - Validar que o backend diferencia claramente falha de autenticação, falha de quota, falha de região e falha de modelo.

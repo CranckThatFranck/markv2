@@ -62,11 +62,39 @@ class VertexCredentialsManager:
         self._save()
 
     def set_active(self, credential_id: str) -> None:
+        if credential_id == "env:VERTEXAI":
+            for key in self._credentials:
+                self._credentials[key].active = False
+            self._save()
+            return
         if credential_id not in self._credentials:
             raise ValueError("CREDENTIAL_NOT_FOUND")
         for key in self._credentials:
             self._credentials[key].active = key == credential_id
         self._save()
+
+    def list_credential_ids(self) -> list[str]:
+        return sorted(self._credentials.keys())
+
+    def get_active_credential_id(self) -> str | None:
+        active = self.get_active()
+        return active.credential_id if active else None
+
+    def get_credential(self, credential_id: str) -> VertexCredential | None:
+        if credential_id == "env:VERTEXAI":
+            env_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+            env_project = os.getenv("VERTEXAI_PROJECT")
+            env_location = os.getenv("VERTEXAI_LOCATION")
+            if env_path and env_project and env_location:
+                return VertexCredential(
+                    credential_id="env:VERTEXAI",
+                    service_account_path=env_path,
+                    project=env_project,
+                    location=env_location,
+                    active=True,
+                )
+            return None
+        return self._credentials.get(credential_id)
 
     def get_active(self) -> VertexCredential | None:
         for cred in self._credentials.values():

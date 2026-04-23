@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -55,6 +56,36 @@ class CredentialRuntime:
             raise ValueError("PROVIDER_NOT_FOUND")
         self.refresh_status()
         return self.provider_store.get_credentials_status()[provider]
+
+    def list_google_credential_ids(self) -> list[str]:
+        self.refresh_status()
+        ids = self.key_manager.list_credential_ids()
+        if os.getenv("GOOGLE_API_KEY"):
+            ids.append("env:GOOGLE_API_KEY")
+        return sorted(set(ids))
+
+    def list_vertex_credential_ids(self) -> list[str]:
+        self.refresh_status()
+        ids = self.vertex_manager.list_credential_ids()
+        if os.getenv("GOOGLE_APPLICATION_CREDENTIALS") and os.getenv("VERTEXAI_PROJECT") and os.getenv("VERTEXAI_LOCATION"):
+            ids.append("env:VERTEXAI")
+        return sorted(set(ids))
+
+    def get_google_api_key_for_credential(self, credential_id: str) -> str | None:
+        self.refresh_status()
+        return self.key_manager.get_api_key(credential_id)
+
+    def get_vertex_credential(self, credential_id: str) -> dict[str, str] | None:
+        self.refresh_status()
+        credential = self.vertex_manager.get_credential(credential_id)
+        if credential is None:
+            return None
+        return {
+            "credential_id": credential.credential_id,
+            "service_account_path": credential.service_account_path,
+            "project": credential.project,
+            "location": credential.location,
+        }
 
     def get_google_api_key(self) -> str | None:
         self.refresh_status()

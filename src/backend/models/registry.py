@@ -75,6 +75,15 @@ class ModelRegistry:
         models = [model_id for model_id, entry in {**self._builtin, **self._custom}.items() if entry.provider == provider]
         return sorted(models)
 
+    def fallback_models_for_provider(self, provider: str, current_model_id: str) -> list[str]:
+        candidates = [
+            entry
+            for entry in {**self._builtin, **self._custom}.values()
+            if entry.provider == provider and entry.enabled and entry.model_id != current_model_id
+        ]
+        candidates.sort(key=lambda entry: (entry.priority, entry.model_id))
+        return [entry.model_id for entry in candidates]
+
     def default_model_for_provider(self, provider: str) -> str | None:
         candidates = [entry for entry in {**self._builtin, **self._custom}.values() if entry.provider == provider and entry.enabled]
         if not candidates:

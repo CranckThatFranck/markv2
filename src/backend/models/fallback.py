@@ -22,6 +22,20 @@ class FallbackPolicy:
     def __init__(self, allow_cross_provider_fallback: bool = False) -> None:
         self.allow_cross_provider_fallback = allow_cross_provider_fallback
 
+    @property
+    def credential_failure_codes(self) -> set[str]:
+        return {"AUTHENTICATION_FAILED", "RATE_LIMIT", "QUOTA_EXCEEDED", "CREDENTIAL_NOT_CONFIGURED"}
+
+    @property
+    def model_failure_codes(self) -> set[str]:
+        return {"MODEL_NOT_FOUND", "MODEL_UNAVAILABLE"}
+
+    def is_credential_failure(self, error_code: str | None) -> bool:
+        return bool(error_code and error_code in self.credential_failure_codes)
+
+    def is_model_failure(self, error_code: str | None) -> bool:
+        return bool(error_code and error_code in self.model_failure_codes)
+
     def fallback_model(self, current_model: str, candidates: list[str], reason: str) -> FallbackDecision:
         if not candidates:
             raise ValueError("FALLBACK_MODEL_NOT_AVAILABLE")
