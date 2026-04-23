@@ -231,6 +231,7 @@
 ### Segurança e guardrails
 - Implementar `security/policies.py`.
 - Implementar `command_guard.py`.
+- Implementar `confirmations.py`.
 - Implementar bloqueio inicial de comandos destrutivos explícitos.
 - Implementar distinção comportamental entre Plan e Agent.
 - Implementar bloqueio de ferramentas sensíveis em Plan.
@@ -315,6 +316,14 @@
 
 ### Feito na rodada atual
 - Atualizar README.md do produto para o Mark Core v2.
+- Implementar `security/policies.py`.
+- Implementar `command_guard.py`.
+- Implementar `confirmations.py`.
+- Implementar bloqueio inicial de comandos destrutivos explícitos.
+- Implementar distinção comportamental entre Plan e Agent.
+- Implementar bloqueio de ferramentas sensíveis em Plan.
+- Validar que comandos de risco não passam silenciosamente.
+- Validar que o modo Plan não executa ação sensível.
 
 ### Teste remoto e fechamento do primeiro marco
 - Instalar o novo backend em outra máquina de teste.

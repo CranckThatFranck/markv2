@@ -11,6 +11,7 @@ from .policies import SecurityPolicies
 class CommandGuardResult:
     allowed: bool
     reason: str | None = None
+    requires_confirmation: bool = False
 
 
 class CommandGuard:
@@ -19,6 +20,10 @@ class CommandGuard:
     def __init__(self, policies: SecurityPolicies | None = None) -> None:
         self.policies = policies or SecurityPolicies()
 
-    def check(self, command: str) -> CommandGuardResult:
-        decision = self.policies.is_safe_command(command)
-        return CommandGuardResult(allowed=decision.allowed, reason=decision.reason)
+    def check(self, command: str, mode: str = "agent", confirmed: bool = False) -> CommandGuardResult:
+        decision = self.policies.is_safe_command(command, mode=mode, confirmed=confirmed)
+        return CommandGuardResult(
+            allowed=decision.allowed,
+            reason=decision.reason,
+            requires_confirmation=decision.requires_confirmation,
+        )

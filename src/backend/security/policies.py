@@ -3,24 +3,57 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 
 
 @dataclass(slots=True)
 class SecurityDecision:
     allowed: bool
     reason: str | None = None
+    requires_confirmation: bool = False
 
 
 class SecurityPolicies:
     """Conjunto minimo de regras para operacao segura do backend."""
 
-    destructive_commands = {"rm -rf /", "shutdown", "reboot", "mkfs"}
+    destructive_patterns = (
+        r"\brm\s+-rf\b",
+        r"\bmkfs\b",
+        r"\bshutdown\b",
+        r"\breboot\b",
+        r"\bpoweroff\b",
+        r"\bhalt\b",
+        r"\bdd\s+if=",
+        r":\(\)\s*\{\s*:\s*\|\s*&\s*;\s*\}\s*;\s*:",
+    )
 
-    def is_safe_command(self, command: str) -> SecurityDecision:
+    confirmation_patterns = (
+        r"\bsudo\b",
+        r"\bchmod\s+777\b",
+        r"\bchown\s+-R\b",
+        r"\bkill\s+-9\b",
+        r"\bpkill\s+-9\b",
+        r"\bkillall\b",
+        r"\buserdel\b",
+        r"\bcurl\b.*\|\s*bash\b",
+        r"\bwget\b.*\|\s*bash\b",
+    )
+
+    def is_safe_command(self, command: str, mode: str = "agent", confirmed: bool = False) -> SecurityDecision:
         normalized = command.strip().lower()
-        for pattern in self.destructive_commands:
-            if pattern in normalized:
+        if mode == "plan":
+            return SecurityDecision(allowed=False, reason="PLAN_MODE_BLOCKED")
+
+        for pattern in self.destructive_patterns:
+            if re.search(pattern, normalized):
                 return SecurityDecision(allowed=False, reason="COMMAND_BLOCKED")
+
+        for pattern in self.confirmation_patterns:
+            if re.search(pattern, normalized):
+                if confirmed:
+                    return SecurityDecision(allowed=True)
+                return SecurityDecision(allowed=False, reason="CONFIRMATION_REQUIRED", requires_confirmation=True)
+
         return SecurityDecision(allowed=True)
 
     def is_plan_mode_allowed(self, action: str) -> SecurityDecision:

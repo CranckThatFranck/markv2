@@ -18,6 +18,7 @@ from src.backend.logging.task_logger import BackendLogger, TaskLogger
 from src.backend.models.providers.google_ai_client import GoogleAIClient
 from src.backend.models.providers.vertex_ai_client import VertexAIClient
 from src.backend.models.router import ModelRouter
+from src.backend.security.confirmations import ConfirmationPolicy
 from src.backend.protocol.schemas import error_response, success_response
 from src.backend.runtime.credentials import CredentialRuntime
 from src.backend.runtime.rules import build_rules_runtime
@@ -64,9 +65,11 @@ class TaskExecutionService:
         self._shutdown_requested = False
         self._dispatch_task_id: str | None = None
         self._dispatch_emit_console: Callable[[str, str], Awaitable[None]] | None = None
+        self._dispatch_mode: str | None = None
         self.context_builder = TaskContextBuilder()
         self.task_logger = TaskLogger()
         self.backend_logger = BackendLogger()
+        self.confirmation_policy = ConfirmationPolicy()
 
     @property
     def rules_file(self) -> str:
@@ -122,10 +125,24 @@ class TaskExecutionService:
         if self._dispatch_task_id is None or self._dispatch_emit_console is None:
             raise RuntimeError("TOOL_ROUTER_CONTEXT_MISSING")
 
+        mode = self._dispatch_mode or "agent"
+        confirmation = self.confirmation_policy.requires_confirmation(command=command)
+        if confirmation.required:
+            return {
+                "ok": False,
+                "exit_code": 126,
+                "stdout": "",
+                "stderr": confirmation.reason or "CONFIRMATION_REQUIRED",
+                "pid": -1,
+                "pgid": -1,
+                "command": command,
+            }
+
         result = await self.task_runner.run_command(
             task_id=self._dispatch_task_id,
             command=command,
             emit_console=self._dispatch_emit_console,
+            mode=mode,
         )
         return {
             "ok": result.ok,
@@ -193,17 +210,27 @@ class TaskExecutionService:
 
             self._dispatch_task_id = context.task_id
             self._dispatch_emit_console = emit_console
+            self._dispatch_mode = context.mode
             try:
                 tool_result = await self.tool_router.dispatch(tool_name, tool_input)
             finally:
                 self._dispatch_task_id = None
                 self._dispatch_emit_console = None
+                self._dispatch_mode = None
 
             if not bool(tool_result.get("ok")):
+                blocked_reason = str(tool_result.get("stderr") or "COMMAND_BLOCKED")
+                await websocket.send_json(
+                    {
+                        "type": "system",
+                        "protocol_version": "2.0",
+                        "message": f"Comando bloqueado pela política de segurança: {blocked_reason}",
+                    }
+                )
                 return (
                     False,
                     "TOOL_EXECUTION_FAILED",
-                    f"shell_tool falhou (exit_code={tool_result.get('exit_code')}): {tool_result.get('stderr') or 'sem detalhes'}",
+                    f"shell_tool bloqueou a execução (exit_code={tool_result.get('exit_code')}): {blocked_reason}",
                 )
 
             stdout = str(tool_result.get("stdout", "")).strip()

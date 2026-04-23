@@ -24,11 +24,11 @@ class ShellTool:
         self.timeout_seconds = timeout_seconds
         self.command_guard = command_guard or CommandGuard()
 
-    async def execute(self, command: str) -> ShellResult:
+    async def execute(self, command: str, mode: str = "agent", confirmed: bool = False) -> ShellResult:
         if not command.strip():
             return ShellResult(ok=False, exit_code=1, stdout="", stderr="COMMAND_REQUIRED")
 
-        guard = self.command_guard.check(command)
+        guard = self.command_guard.check(command, mode=mode, confirmed=confirmed)
         if not guard.allowed:
             return ShellResult(ok=False, exit_code=126, stdout="", stderr=guard.reason or "COMMAND_BLOCKED")
 
@@ -48,10 +48,10 @@ class ShellTool:
         stderr = stderr_bytes.decode("utf-8", errors="replace") if stderr_bytes else ""
         return ShellResult(ok=process.returncode == 0, exit_code=process.returncode or 0, stdout=stdout, stderr=stderr)
 
-    async def stream(self, command: str) -> list[dict[str, Any]]:
+    async def stream(self, command: str, mode: str = "agent", confirmed: bool = False) -> list[dict[str, Any]]:
         """Executa comando e devolve lista de eventos de stream para o backend."""
 
-        result = await self.execute(command)
+        result = await self.execute(command, mode=mode, confirmed=confirmed)
         events: list[dict[str, Any]] = []
         if result.stdout:
             events.append({"stream": "stdout", "content": result.stdout})

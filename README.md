@@ -34,6 +34,7 @@ What is already working locally:
 - Centralized runtime path resolution with fallback support
 - Session, history, and basic state persistence
 - Local validation with real TestClient/WebSocket flows for plan mode, agent mode, progressive streaming, interrupt, and a new task after interrupt
+- Security guardrails now enforce `plan` vs `agent` at execution time and block destructive or high-risk shell commands before subprocess execution
 
 ## Stack
 
@@ -305,6 +306,23 @@ Interruption of a running task:
 - Clears active task state
 
 A new `execute_task` can be started immediately after interrupt without backend restart. State coherence is maintained through centralized `StateManager`.
+
+## Security And Guardrails
+
+Shell execution now passes through a centralized security policy path before any subprocess starts:
+
+- `src/backend/security/policies.py` defines the blocklist and confirmation rules
+- `src/backend/security/command_guard.py` converts policy decisions into command checks
+- `src/backend/security/confirmations.py` marks high-risk operations as requiring confirmation
+- `src/backend/execution/task_runner.py` rejects blocked commands before process creation
+- `src/backend/runtime/task_execution.py` surfaces blocked commands as structured `action_response` errors and clear `system` events
+
+Current behavior:
+
+- `mode="plan"` is enforceable and never reaches shell execution
+- `mode="agent"` allows safe commands only after guard evaluation
+- destructive commands return structured failures such as `COMMAND_BLOCKED`
+- confirmation-required commands are rejected with `CONFIRMATION_REQUIRED` until an explicit confirmation flow exists
 
 ## Working Notes
 

@@ -38,6 +38,7 @@ class TaskRunner:
         task_id: str,
         command: str,
         emit_console: Callable[[str, str], Awaitable[None]],
+        mode: str = "agent",
     ) -> TaskRunResult:
         normalized = command.strip()
         if not normalized:
@@ -51,7 +52,7 @@ class TaskRunner:
                 pgid=-1,
             )
 
-        guard = self.shell_tool.command_guard.check(normalized)
+        guard = self.shell_tool.command_guard.check(normalized, mode=mode)
         if not guard.allowed:
             return TaskRunResult(
                 task_id=task_id,
