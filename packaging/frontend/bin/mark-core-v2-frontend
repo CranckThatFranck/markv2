@@ -1,0 +1,14 @@
+#!/bin/bash
+set -e
+
+APP_DIR="/opt/jarvis/frontend"
+PYTHON_BIN="$APP_DIR/.venv/bin/python"
+
+if [ ! -x "$PYTHON_BIN" ]; then
+    echo "Frontend virtualenv not found. Reinstall the package or run post-install setup." >&2
+    exit 1
+fi
+
+cd "$APP_DIR"
+export PYTHONPATH="$APP_DIR${PYTHONPATH:+:$PYTHONPATH}"
+exec "$PYTHON_BIN" -m src.frontend.main "$@"

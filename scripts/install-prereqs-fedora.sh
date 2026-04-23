@@ -12,6 +12,7 @@ fi
 dnf install -y \
     python3.12 \
     python3.12-pip \
+    python3-tkinter \
     rsync \
     rpm-build
 

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Mark Core v2 Frontend
+Comment=Desktop client for the Mark Core v2 backend
+Exec=mark-core-v2-frontend
+Icon=mark-core-v2-frontend
+Terminal=false
+Categories=Utility;
+StartupNotify=true

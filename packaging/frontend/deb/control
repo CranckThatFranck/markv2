@@ -1,0 +1,11 @@
+Package: mark-core-v2-frontend
+Version: 0.1.0-1
+Section: utils
+Priority: optional
+Architecture: all
+Maintainer: CranckThatFranck <franck.oliver@outlook.com.br>
+Depends: python3.12, python3.12-venv, python3-tk
+Description: Minimal desktop frontend for Mark Core v2
+ A minimal Linux desktop client for the Mark Core v2 backend.
+ It connects to the backend through the existing WebSocket v2 protocol,
+ shows sync_state, history, provider/model state, and can execute tasks.
