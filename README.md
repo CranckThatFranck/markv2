@@ -360,11 +360,11 @@ Current behavior:
 
 ## Running as a Systemd Service (Production)
 
-Mark Core v2 backend can be deployed as a systemd service on headless Linux servers for true 24/7 operation without requiring an open terminal or user login.
+Mark Core v2 can run headlessly under `systemd` without any terminal session open.
 
 ### Quick Start
 
-#### 1. Install the Service (Both .deb and .rpm Supported)
+#### 1. Install the Service
 
 **From source (recommended for development):**
 
@@ -376,259 +376,203 @@ sudo bash scripts/install-systemd.sh
 This script:
 - Creates the `jarvis` system user
 - Copies backend code to `/opt/jarvis/backend`
-- Copies systemd unit files to `/etc/systemd/system/`
+- Creates `/opt/jarvis/backend/.venv` and installs backend dependencies
+- Installs `/etc/systemd/system/mark-core-v2.service`
+- Installs `/etc/mark-core-v2/environment`
 - Creates persistent directories:
-  - `/var/lib/jarvis-mark` for state, sessions, history
-  - `/var/log/jarvis` for central logging
-  - `/etc/mark-core-v2` for environment configuration
+  - `/var/lib/jarvis-mark/estado` for runtime state, session and history
+  - `/var/log/jarvis` for persistent backend logs
+- Runs `systemctl daemon-reload`
 
 **From .deb (Debian/Ubuntu):**
 
 ```bash
-sudo dpkg -i mark-core-v2_0.1.0-1_all.deb
+sudo dpkg -i packaging/mark-core-v2_0.1.0-1_all.deb
 ```
 
 **From .rpm (Red Hat/CentOS/Fedora):**
 
 ```bash
-sudo rpm -i mark-core-v2-0.1.0-1.el7.x86_64.rpm
+sudo rpm -i packaging/mark-core-v2-0.1.0-1.el7.x86_64.rpm
 ```
 
-#### 2. Configure Environment Variables (Optional)
+#### 2. Configure Environment Variables
 
 ```bash
 sudo nano /etc/mark-core-v2/environment
 ```
 
-Supported variables:
-- `GOOGLE_API_KEY` for Google AI API
-- `GOOGLE_APPLICATION_CREDENTIALS` for Vertex AI service account credentials
-- `VERTEXAI_PROJECT` for the Vertex AI project id
-- `VERTEXAI_LOCATION` for the Vertex AI region/location
+Supported variables used by the service:
+- `MARK_STATE_DIR=/var/lib/jarvis-mark/estado`
+- `MARK_LOG_DIR=/var/log/jarvis`
+- `GOOGLE_API_KEY`
+- `GOOGLE_APPLICATION_CREDENTIALS`
+- `VERTEXAI_PROJECT`
+- `VERTEXAI_LOCATION`
 
 Example:
 
 ```bash
-# Saved to /etc/mark-core-v2/environment
-export GOOGLE_API_KEY="your-api-key-here"
-export VERTEXAI_PROJECT="your-project-id"
-export VERTEXAI_LOCATION="us-central1"
+# /etc/mark-core-v2/environment
+GOOGLE_API_KEY=your-api-key-here
+GOOGLE_APPLICATION_CREDENTIALS=/etc/mark-core-v2/vertex-credentials.json
+VERTEXAI_PROJECT=your-project-id
+VERTEXAI_LOCATION=us-central1
 ```
 
-The service will automatically load these on startup.
+`EnvironmentFile=-/etc/mark-core-v2/environment` is loaded automatically on service start.
 
-#### 3. Start the Service
+#### 3. Lifecycle Commands
 
 ```bash
+sudo systemctl daemon-reload
 sudo systemctl start mark-core-v2
-```
-
-Verify it is running:
-
-```bash
-sudo systemctl status mark-core-v2
-```
-
-Expected output:
-```
-● mark-core-v2.service - Mark Core v2 Backend Service
-     Loaded: loaded (/etc/systemd/system/mark-core-v2.service; enabled; vendor preset: enabled)
-     Active: active (running) since Mon 2025-04-21 10:15:23 UTC; 2s ago
-   Main PID: 1234 (uvicorn)
-      Tasks: 8
-     Memory: 45.2M
-     CGroup: /system.slice/mark-core-v2.service
-             └─1234 /opt/jarvis/backend/.venv/bin/python -m uvicorn src.backend.main:app...
-```
-
-#### 4. Test WebSocket Connectivity
-
-Once running, test the backend:
-
-```bash
-# Health endpoint
-curl http://localhost:8000/health
-
-# WebSocket connection (requires websocat or similar)
-# Or test from Python:
-python3 - <<'PY'
-import asyncio
-import websockets
-import json
-
-async def test():
-    uri = "ws://127.0.0.1:8000/ws"
-    async with websockets.connect(uri) as ws:
-        # Receive sync_state
-        msg = await ws.recv()
-        print("sync_state:", json.loads(msg)['action'])
-        
-        # Send healthcheck
-        await ws.send(json.dumps({
-            "protocol_version": "2.0",
-            "action": "healthcheck",
-            "payload": {}
-        }))
-        resp = await ws.recv()
-        print("Response:", json.loads(resp)['action'])
-
-asyncio.run(test())
-PY
-```
-
-#### 5. Enable on Boot
-
-To start the service automatically on system reboot:
-
-```bash
+sudo systemctl stop mark-core-v2
+sudo systemctl restart mark-core-v2
+sudo systemctl status mark-core-v2 --no-pager
 sudo systemctl enable mark-core-v2
 ```
 
-Verify:
+Validated locally on this host:
 
-```bash
-sudo systemctl is-enabled mark-core-v2
-# Output: enabled
+```
+● mark-core-v2.service - Mark Core v2 Backend Service
+     Loaded: loaded (/etc/systemd/system/mark-core-v2.service; enabled; preset: enabled)
+     Active: active (running)
+   Main PID: ... /opt/jarvis/backend/.venv/bin/uvicorn src.backend.main:app --host 0.0.0.0 --port 8000
 ```
 
-### Common Operations
+The installed unit is configured with:
 
-#### Check Service Status
-
-```bash
-sudo systemctl status mark-core-v2
+```ini
+WorkingDirectory=/opt/jarvis/backend
+ExecStart=/opt/jarvis/backend/.venv/bin/uvicorn src.backend.main:app --host 0.0.0.0 --port 8000
+Restart=on-failure
+User=jarvis
+Group=jarvis
+Environment="MARK_STATE_DIR=/var/lib/jarvis-mark/estado"
+Environment="MARK_LOG_DIR=/var/log/jarvis"
+EnvironmentFile=-/etc/mark-core-v2/environment
 ```
 
-#### View Recent Logs
+#### 4. Healthcheck and WebSocket Validation
+
+Healthcheck:
 
 ```bash
-# Last 50 lines, follow in real-time
-sudo journalctl -u mark-core-v2 -f
-
-# Last 100 lines
-sudo journalctl -u mark-core-v2 -n 100
-
-# Errors only
-sudo journalctl -u mark-core-v2 -p err
+curl http://127.0.0.1:8000/health
 ```
 
-#### Restart the Service
+Expected response:
+
+```json
+{"status":"ok","service":"mark-core-v2"}
+```
+
+WebSocket:
+
+```bash
+/opt/jarvis/backend/.venv/bin/python - <<'PY'
+import asyncio
+import json
+import websockets
+
+async def main():
+    async with websockets.connect("ws://127.0.0.1:8000/ws") as ws:
+        await ws.send(json.dumps({
+            "protocol_version": "2.0",
+            "action": "healthcheck",
+            "payload": {},
+        }))
+        print(await ws.recv())
+
+asyncio.run(main())
+PY
+```
+
+Local validation also confirmed a simple `execute_task` through the service with a real WebSocket client.
+
+#### 5. Logs and Persistence
+
+Persistent paths used by the service:
+
+- Runtime state: `/var/lib/jarvis-mark/estado`
+- Logs: `/var/log/jarvis`
+- Unit file: `/etc/systemd/system/mark-core-v2.service`
+- Environment file: `/etc/mark-core-v2/environment`
+
+Useful commands:
+
+```bash
+sudo journalctl -u mark-core-v2 -n 50 --no-pager
+sudo tail -n 50 /var/log/jarvis/backend.log
+sudo ls -la /var/lib/jarvis-mark/estado
+```
+
+Files observed locally after validation:
+
+```text
+/var/lib/jarvis-mark/estado/config.json
+/var/lib/jarvis-mark/estado/session.json
+/var/lib/jarvis-mark/estado/tasks.db
+/var/log/jarvis/backend.log
+/var/log/jarvis/task_execution.log
+```
+
+### Troubleshooting
+
+#### Service does not start
+
+```bash
+sudo systemctl status mark-core-v2 --no-pager
+sudo journalctl -u mark-core-v2 -n 100 --no-pager
+```
+
+Then verify:
+
+```bash
+sudo test -x /opt/jarvis/backend/.venv/bin/uvicorn
+sudo stat /var/lib/jarvis-mark/estado /var/log/jarvis
+```
+
+#### HTTP or WebSocket unreachable
+
+```bash
+curl http://127.0.0.1:8000/health
+sudo ss -ltnp | grep 8000
+```
+
+#### Environment variables not being loaded
+
+Use plain `KEY=value` lines in `/etc/mark-core-v2/environment`. Do not use `export`.
+
+After changing the file:
 
 ```bash
 sudo systemctl restart mark-core-v2
 ```
 
-Graceful reload (HUP signal):
-
-```bash
-sudo systemctl reload mark-core-v2
-```
-
-#### Stop the Service
-
-```bash
-sudo systemctl stop mark-core-v2
-```
-
-#### Disable from Boot
-
-```bash
-sudo systemctl disable mark-core-v2
-```
-
-### Persistent Paths
-
-When running as a service, the backend uses:
-
-- **State/Sessions/History:** `/var/lib/jarvis-mark/estado`
-- **Logs:** Streamed to systemd journal (view with `journalctl`)
-- **Configuration:** `/opt/jarvis/backend/src/backend/product_config/initial_rules.txt`
-- **Environment:** `/etc/mark-core-v2/environment` (optional)
-
-All paths are preconifigured and writable by the `jarvis` system user.
-
-### Troubleshooting
-
-#### Service fails to start
-
-1. Check logs:
-   ```bash
-   sudo journalctl -u mark-core-v2 -n 50
-   ```
-
-2. Verify permissions:
-   ```bash
-   sudo ls -la /var/lib/jarvis-mark/
-   sudo ls -la /var/log/jarvis/
-   ```
-
-3. Check Python environment:
-   ```bash
-   /opt/jarvis/backend/.venv/bin/python --version
-   ```
-
-#### WebSocket not responding
-
-1. Verify service is running:
-   ```bash
-   sudo systemctl is-active mark-core-v2
-   ```
-
-2. Check if port 8000 is listening:
-   ```bash
-   sudo netstat -tulpn | grep 8000
-   # or
-   sudo ss -tulpn | grep 8000
-   ```
-
-3. Test healthcheck locally:
-   ```bash
-   curl http://localhost:8000/health
-   ```
-
-#### High memory/CPU
-
-Monitor over time:
-
-```bash
-sudo systemctl status mark-core-v2 --no-pager
-watch -n 1 'ps aux | grep uvicorn'
-```
-
-Review logs for repeated errors or stuck tasks:
-
-```bash
-sudo journalctl -u mark-core-v2 --follow
-```
-
 ### Uninstallation
 
-To remove the service while preserving data:
+To remove the service and keep application/state files:
 
 ```bash
-# From source
 sudo bash scripts/uninstall-systemd.sh
-
-# Or manually
-sudo systemctl stop mark-core-v2
-sudo systemctl disable mark-core-v2
-sudo rm /etc/systemd/system/mark-core-v2.service
-sudo rm /etc/systemd/system/mark-core-v2.socket
-sudo systemctl daemon-reload
 ```
 
-Optional: Remove application and state directories:
+To remove everything manually:
 
 ```bash
-sudo rm -rf /opt/jarvis/backend
-sudo rm -rf /var/lib/jarvis-mark
-sudo rm -rf /var/log/jarvis
-sudo userdel jarvis
+sudo systemctl stop mark-core-v2
+sudo systemctl disable mark-core-v2
+sudo rm -f /etc/systemd/system/mark-core-v2.service
+sudo systemctl daemon-reload
+sudo rm -rf /opt/jarvis/backend /var/lib/jarvis-mark /var/log/jarvis /etc/mark-core-v2
 ```
 
 ### Packaging
 
-See [packaging/README.md](packaging/README.md) for building and distributing `.deb` and `.rpm` packages.
+See [packaging/README.md](packaging/README.md) for `.deb` and `.rpm` build details.
 
 ## Working Notes
 
