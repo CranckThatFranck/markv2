@@ -183,6 +183,7 @@
 - Atualizar a documentação Ubuntu-first com pré-requisitos, instalação `.deb` backend/frontend, variáveis de ambiente, `systemctl`, logs, launcher e troubleshooting.
 - Corrigir emissão de eventos do backend quando o cliente fecha o WebSocket durante uma task, evitando exceção ASGI no journal sem alterar o protocolo.
 - Validar novamente o fluxo Ubuntu instalado via `.deb` com backend `systemd`, frontend instalado, conexão local, `sync_state`, histórico, troca de provider/modelo, reconexão e inferência real via `google_ai` e `vertex_ai`.
+- Refinar os controles funcionais do frontend Ubuntu com credencial ativa segura por provider, estados de task `idle/running/interrupted/error/reconnecting`, feedback de execução/interrupção/troca de provider/modelo, `clear_session`, sincronização e reconexão manual.
 ## A fazer
 
 ### Preparação e coerência documental do v2
