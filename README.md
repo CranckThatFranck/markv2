@@ -127,11 +127,13 @@ Current frontend behavior:
 - defaults to `ws://127.0.0.1:8000/ws`
 - can reconnect to another backend host by editing the WebSocket URL in the window
 - reads the backend `sync_state` and keeps the backend as the operational source of truth
-- shows current backend status, active provider, active model, mode, active task, rehydrated history, session metadata, and safe credential status
-- supports `execute_task`, `interrupt`, `change_provider`, `change_model`, and manual refresh of operational state
+- shows current backend status, task state, active provider, active model, mode, active task, active safe credential id, rehydrated history, session metadata, and safe credential status
+- supports `execute_task`, `interrupt`, `change_provider`, `change_model`, `clear_session`, manual state sync, and manual reconnect
+- makes task states explicit for operation: `idle`, `running`, `interrupted`, `error`, and `reconnecting`
 - persists only local frontend preferences in `~/.config/mark-core-v2-frontend/preferences.json`
 
 The frontend does not persist operational state on its own. Session, history, provider, model, and credential status continue to come from the backend.
+It does not implement fallback, credential policy, safety checks, or task execution logic; those remain backend responsibilities.
 
 ## Ubuntu Install From `.deb`
 
@@ -632,12 +634,13 @@ The frontend v2 has been validated locally against the installed `mark-core-v2` 
 - connect to `ws://127.0.0.1:8000/ws`
 - receive `sync_state`
 - rehydrate persisted history
-- display provider/model/mode/task state with clearer connected, reconnecting and disconnected feedback
-- display safe credential status without raw secret values
+- display provider/model/mode/task state with clearer connected, reconnecting, interrupted, error and idle feedback
+- display the active safe credential id for the active provider without raw secret values
 - switch provider
 - switch model
-- execute `echo frontend smoke ok`
+- execute a simple model task and show the final response clearly
 - interrupt `sleep 20`
+- clear the backend session through the existing `clear_session` protocol action
 - reconnect and receive the persisted session state again
 
 The `.deb` installation path was also revalidated after removing the previous manual installation and reinstalling through `dpkg -i`.
@@ -651,6 +654,7 @@ The packaged frontend was also validated locally after installation from `.deb` 
 - execute real inference via `google_ai` with final answer `azul`
 - execute real inference via `vertex_ai` with final answer `verde`
 - switch provider and model from the installed app
+- show active provider, active model, mode, task state and safe active credential id in the operational header
 - reconnect without losing the backend session state
 - show first-run guidance when the active provider has no configured credential
 
