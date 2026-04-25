@@ -43,7 +43,16 @@ class VertexAIClient:
         if not self.location:
             raise ValueError("REGION_NOT_CONFIGURED")
 
-    def generate_text(self, prompt: str, model_id: str = "vertex_ai/gemini-2.5-flash") -> VertexAIResult:
+    def _to_upstream_model_id(self, model_id: str) -> str:
+        if model_id.startswith("vertex_ai/google/"):
+            return model_id.removeprefix("vertex_ai/google/")
+        if model_id.startswith("vertex_ai/meta/"):
+            return model_id.removeprefix("vertex_ai/")
+        if model_id.startswith("vertex_ai/"):
+            return model_id.removeprefix("vertex_ai/")
+        return model_id
+
+    def generate_text(self, prompt: str, model_id: str = "vertex_ai/google/gemini-3.1-pro-preview") -> VertexAIResult:
         """Executa chamada real no Vertex AI e normaliza a resposta."""
 
         try:
@@ -60,7 +69,7 @@ class VertexAIClient:
         try:
             credentials = service_account.Credentials.from_service_account_file(self.credentials_path)
             vertexai.init(project=self.project, location=self.location, credentials=credentials)
-            upstream_model = model_id.split("/", 1)[-1]
+            upstream_model = self._to_upstream_model_id(model_id)
             model = GenerativeModel(upstream_model)
             response = model.generate_content(prompt)
 

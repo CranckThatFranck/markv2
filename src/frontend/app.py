@@ -158,7 +158,11 @@ class FrontendApp:
         self.credential_provider_combo.bind("<<ComboboxSelected>>", self._on_credential_provider_selected)
 
         ttk.Label(credential_controls, text="Credential ID").grid(row=1, column=0, sticky="w", pady=(8, 0))
-        self.credential_combo = ttk.Combobox(credential_controls, textvariable=self.credential_choice)
+        self.credential_combo = ttk.Combobox(
+            credential_controls,
+            textvariable=self.credential_choice,
+            state="readonly",
+        )
         self.credential_combo.grid(row=1, column=1, sticky="ew", padx=(8, 0), pady=(8, 0))
 
         credential_buttons = ttk.Frame(credential_controls)
@@ -267,7 +271,11 @@ class FrontendApp:
             return
         if not credential_id:
             self._set_task_state("error")
-            self._append_log("ERROR  Informe um credential_id seguro para ativar.")
+            self._append_log("ERROR  Selecione uma credencial segura exposta pelo backend.")
+            return
+        if credential_id not in self.credential_ids_by_provider.get(provider, []):
+            self._set_task_state("error")
+            self._append_log("ERROR  Selecao invalida: a credencial nao foi exposta pelo backend.")
             return
         self.last_action.set(f"set_active_credential -> {provider}")
         self._append_log(f"Solicitando credencial ativa {credential_id} para {provider}.")
@@ -486,25 +494,36 @@ class FrontendApp:
             marker = "active" if provider == active_provider else "available"
             configured = "configured" if status.get("configured") else "missing"
             active_credential = status.get("active_credential_id") or "-"
-            available = status.get("available_credential_ids") or []
+            credentials = status.get("credentials") or []
             credential_count = status.get("credential_count", "-")
-            if isinstance(available, list):
-                available_text = ", ".join(str(item) for item in available) or "-"
-                safe_ids = [str(item) for item in available if str(item).strip()]
+            credential_lines: list[str] = []
+            safe_ids: list[str] = []
+            if isinstance(credentials, list):
+                for raw_credential in credentials:
+                    if not isinstance(raw_credential, dict):
+                        continue
+                    credential_id = str(raw_credential.get("credential_id") or "").strip()
+                    if not credential_id:
+                        continue
+                    safe_ids.append(credential_id)
+                    label = str(raw_credential.get("label") or credential_id)
+                    source_type = str(raw_credential.get("source_type") or "unknown")
+                    active_marker = "*" if raw_credential.get("is_active") else "-"
+                    credential_lines.append(f"    {active_marker} {credential_id} [{source_type}] {label}")
             else:
-                available_text = str(available)
-                safe_ids = []
+                legacy_available = status.get("available_credential_ids") or []
+                if isinstance(legacy_available, list):
+                    safe_ids = [str(item) for item in legacy_available if str(item).strip()]
             if active_credential != "-":
                 safe_ids.append(active_credential)
             self.credential_ids_by_provider[provider] = sorted(set(safe_ids))
-            if available_text == "-" and safe_ids:
-                available_text = ", ".join(sorted(set(safe_ids))) + " (active id exposed)"
+            credentials_text = "\n".join(credential_lines) if credential_lines else "    - nenhuma credencial segura listada"
             lines.append(
                 f"{provider} ({marker})\n"
                 f"  status: {configured}\n"
                 f"  active credential: {active_credential}\n"
                 f"  credential count: {credential_count}\n"
-                f"  safe ids: {available_text}"
+                f"  credentials:\n{credentials_text}"
             )
         self._set_text(self.credentials_text, "\n\n".join(lines) or "Nenhuma credencial reportada pelo backend.")
 
@@ -526,6 +545,10 @@ class FrontendApp:
             active = str(status.get("active_credential_id") or "")
         if active:
             self.credential_choice.set(active)
+        elif safe_ids:
+            self.credential_choice.set(safe_ids[0])
+        else:
+            self.credential_choice.set("")
 
     def _render_active_credential(self) -> None:
         active_provider = self.backend_provider.get()
@@ -535,7 +558,15 @@ class FrontendApp:
             return
         credential_id = provider_status.get("active_credential_id") or "-"
         configured = "configured" if provider_status.get("configured") else "missing"
-        self.active_credential.set(f"{credential_id} ({configured})")
+        source_type = ""
+        credentials = provider_status.get("credentials") or []
+        if isinstance(credentials, list):
+            for raw_credential in credentials:
+                if isinstance(raw_credential, dict) and raw_credential.get("credential_id") == credential_id:
+                    source_type = str(raw_credential.get("source_type") or "")
+                    break
+        suffix = f", {source_type}" if source_type else ""
+        self.active_credential.set(f"{credential_id} ({configured}{suffix})")
 
     def _apply_state(self, state: dict[str, Any]) -> None:
         self.backend_status.set(str(state.get("status", "unknown")))

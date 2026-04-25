@@ -24,6 +24,8 @@ class ModelEntry:
 class ModelRegistry:
     """Mantem catalogo de modelos builtin e customizados."""
 
+    DEFAULT_MODEL_ID = "gemini/gemini-3.1-pro-preview-customtools"
+
     def __init__(self, base_dir: str | Path | None = None) -> None:
         self._layout = build_runtime_layout(base_dir)
         self._base_dir = self._layout.runtime_dir
@@ -33,17 +35,38 @@ class ModelRegistry:
 
     def _build_builtin_catalog(self) -> dict[str, ModelEntry]:
         entries = [
-            ModelEntry(model_id="gemini/gemini-3-flash-preview", provider="google_ai", priority=5),
-            ModelEntry(model_id="gemini/gemini-3.1-pro-preview", provider="google_ai", priority=8),
-            ModelEntry(model_id="gemini/gemini-3.1-pro-preview-customtools", provider="google_ai", priority=9),
-            ModelEntry(model_id="gemini/gemini-2.5-flash", provider="google_ai", priority=10),
-            ModelEntry(model_id="gemini/gemini-2.5-pro", provider="google_ai", priority=20),
-            ModelEntry(model_id="vertex_ai/gemini-3.1-pro-preview", provider="vertex_ai", priority=8),
-            ModelEntry(model_id="vertex_ai/gemini-3.1-pro-preview-customtools", provider="vertex_ai", priority=9),
-            ModelEntry(model_id="vertex_ai/gemini-2.5-flash", provider="vertex_ai", priority=10),
-            ModelEntry(model_id="vertex_ai/gemini-2.5-pro", provider="vertex_ai", priority=20),
+            ModelEntry(
+                model_id="gemini/gemini-3.1-pro-preview-customtools",
+                provider="google_ai",
+                priority=1,
+            ),
+            ModelEntry(model_id="gemini/gemini-3.1-pro-preview", provider="google_ai", priority=2),
+            ModelEntry(model_id="gemini/gemini-3-flash-preview", provider="google_ai", priority=3),
+            ModelEntry(model_id="gemini/gemini-3.1-flash-lite-preview", provider="google_ai", priority=4),
+            ModelEntry(model_id="gemini/gemini-2.5-pro", provider="google_ai", priority=5),
+            ModelEntry(
+                model_id="vertex_ai/meta/llama-4-maverick-17b-128e-instruct-maas",
+                provider="vertex_ai",
+                priority=1,
+            ),
+            ModelEntry(
+                model_id="vertex_ai/meta/llama-4-scout-17b-16e-instruct-maas",
+                provider="vertex_ai",
+                priority=2,
+            ),
+            ModelEntry(model_id="vertex_ai/google/gemini-3.1-pro-preview", provider="vertex_ai", priority=3),
+            ModelEntry(
+                model_id="vertex_ai/google/gemini-3.1-pro-preview-customtools",
+                provider="vertex_ai",
+                priority=4,
+            ),
+            ModelEntry(model_id="vertex_ai/google/gemini-3-pro-preview", provider="vertex_ai", priority=5),
         ]
         return {entry.model_id: entry for entry in entries}
+
+    @staticmethod
+    def _sort_entries(entries: list[ModelEntry]) -> list[ModelEntry]:
+        return sorted(entries, key=lambda entry: (entry.priority, entry.model_id))
 
     def _load_custom_models(self) -> dict[str, ModelEntry]:
         if not self._custom_models_file.exists():
@@ -63,17 +86,17 @@ class ModelRegistry:
             json.dump(serialized, f, ensure_ascii=False, indent=2)
 
     def list_builtin(self) -> list[str]:
-        return sorted(self._builtin.keys())
+        return [entry.model_id for entry in self._builtin.values()]
 
     def list_custom(self) -> list[str]:
         return sorted(self._custom.keys())
 
     def list_all(self) -> list[str]:
-        return sorted({*self._builtin.keys(), *self._custom.keys()})
+        return [*self.list_builtin(), *self.list_custom()]
 
     def list_models_by_provider(self, provider: str) -> list[str]:
-        models = [model_id for model_id, entry in {**self._builtin, **self._custom}.items() if entry.provider == provider]
-        return sorted(models)
+        models = [entry for entry in {**self._builtin, **self._custom}.values() if entry.provider == provider]
+        return [entry.model_id for entry in self._sort_entries(models)]
 
     def fallback_models_for_provider(self, provider: str, current_model_id: str) -> list[str]:
         candidates = [

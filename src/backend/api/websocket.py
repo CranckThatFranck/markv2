@@ -40,6 +40,21 @@ task_service = TaskExecutionService(
 )
 
 
+def _ensure_valid_startup_model() -> None:
+    current_model = state_manager.state.model
+    if model_registry.is_valid_model(current_model):
+        provider = model_registry.resolve_provider(current_model)
+        if provider != state_manager.state.provider:
+            state_manager.set_model_and_provider(current_model, provider)
+        return
+
+    default_model = model_registry.DEFAULT_MODEL_ID
+    state_manager.set_model_and_provider(default_model, model_registry.resolve_provider(default_model))
+
+
+_ensure_valid_startup_model()
+
+
 def _build_models_payload() -> dict[str, list[str]]:
     return {
         "builtin": model_registry.list_builtin(),

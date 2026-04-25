@@ -28,7 +28,7 @@ class BackendState:
     mode: str = "agent"
     status: str = "idle"
     provider: str = "google_ai"
-    model: str = "gemini/gemini-2.5-flash"
+    model: str = "gemini/gemini-3.1-pro-preview-customtools"
     active_task_id: str | None = None
     history_revision: int = 0
     paths: RuntimePaths = field(default_factory=RuntimePaths)

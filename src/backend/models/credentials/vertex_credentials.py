@@ -63,6 +63,12 @@ class VertexCredentialsManager:
 
     def set_active(self, credential_id: str) -> None:
         if credential_id == "env:VERTEXAI":
+            if not (
+                os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+                and os.getenv("VERTEXAI_PROJECT")
+                and os.getenv("VERTEXAI_LOCATION")
+            ):
+                raise ValueError("CREDENTIAL_NOT_FOUND")
             for key in self._credentials:
                 self._credentials[key].active = False
             self._save()
@@ -125,6 +131,33 @@ class VertexCredentialsManager:
             "active_credential_id": active.credential_id if active else None,
             "credential_count": len(self._credentials) + (1 if env_configured else 0),
         }
+
+    def list_safe_credentials(self) -> list[dict[str, object]]:
+        active = self.get_active()
+        active_id = active.credential_id if active else None
+        credentials = [
+            {
+                "credential_id": credential.credential_id,
+                "label": credential.credential_id,
+                "source_type": "stored",
+                "is_active": credential.credential_id == active_id,
+            }
+            for credential in self._credentials.values()
+        ]
+        if (
+            os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+            and os.getenv("VERTEXAI_PROJECT")
+            and os.getenv("VERTEXAI_LOCATION")
+        ):
+            credentials.append(
+                {
+                    "credential_id": "env:VERTEXAI",
+                    "label": "Vertex AI environment",
+                    "source_type": "env",
+                    "is_active": active_id == "env:VERTEXAI",
+                }
+            )
+        return sorted(credentials, key=lambda item: (not bool(item["is_active"]), str(item["credential_id"])))
 
     @property
     def file_path(self) -> str:

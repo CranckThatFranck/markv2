@@ -29,7 +29,7 @@ class GoogleAIClient:
         if not self.api_key:
             raise ValueError("CREDENTIAL_NOT_CONFIGURED")
 
-    def generate_text(self, prompt: str, model_id: str = "gemini/gemini-2.5-flash") -> GoogleAIResult:
+    def generate_text(self, prompt: str, model_id: str = "gemini/gemini-3.1-pro-preview-customtools") -> GoogleAIResult:
         """Executa chamada real no Google AI API e normaliza a resposta."""
 
         try:

@@ -55,6 +55,8 @@ class KeyManager:
 
     def set_active(self, credential_id: str) -> None:
         if credential_id == "env:GOOGLE_API_KEY":
+            if not os.getenv("GOOGLE_API_KEY"):
+                raise ValueError("CREDENTIAL_NOT_FOUND")
             for key in self._credentials:
                 self._credentials[key].active = False
             self._save()
@@ -95,6 +97,28 @@ class KeyManager:
             "active_credential_id": active or ("env:GOOGLE_API_KEY" if env_key_present else None),
             "credential_count": len(self._credentials) + (1 if env_key_present else 0),
         }
+
+    def list_safe_credentials(self) -> list[dict[str, object]]:
+        active_id = self.get_active_credential_id()
+        credentials = [
+            {
+                "credential_id": credential.credential_id,
+                "label": credential.label or credential.credential_id,
+                "source_type": "stored",
+                "is_active": credential.credential_id == active_id,
+            }
+            for credential in self._credentials.values()
+        ]
+        if os.getenv("GOOGLE_API_KEY"):
+            credentials.append(
+                {
+                    "credential_id": "env:GOOGLE_API_KEY",
+                    "label": "GOOGLE_API_KEY environment",
+                    "source_type": "env",
+                    "is_active": active_id == "env:GOOGLE_API_KEY",
+                }
+            )
+        return sorted(credentials, key=lambda item: (not bool(item["is_active"]), str(item["credential_id"])))
 
     @property
     def file_path(self) -> str:

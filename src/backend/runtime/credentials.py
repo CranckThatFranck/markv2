@@ -44,7 +44,17 @@ class CredentialRuntime:
 
     def get_credentials_status(self) -> dict[str, dict[str, object]]:
         self.refresh_status()
-        return self.provider_store.get_credentials_status()
+        stored_status = self.provider_store.get_credentials_status()
+        return {
+            "google_ai": {
+                **stored_status.get("google_ai", {}),
+                "credentials": self.key_manager.list_safe_credentials(),
+            },
+            "vertex_ai": {
+                **stored_status.get("vertex_ai", {}),
+                "credentials": self.vertex_manager.list_safe_credentials(),
+            },
+        }
 
     def set_active_credential(self, provider: str, credential_id: str) -> dict[str, object]:
         self.refresh_status()
@@ -55,7 +65,7 @@ class CredentialRuntime:
         else:
             raise ValueError("PROVIDER_NOT_FOUND")
         self.refresh_status()
-        return self.provider_store.get_credentials_status()[provider]
+        return self.get_credentials_status()[provider]
 
     def list_google_credential_ids(self) -> list[str]:
         self.refresh_status()
