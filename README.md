@@ -140,11 +140,13 @@ It does not implement fallback, credential policy, safety checks, or task execut
 The Ubuntu frontend has a `Credential Controls` panel for manual active-credential changes:
 
 - choose the provider whose credential should change
-- choose or type a safe `credential_id`
+- choose a credential from the safe list exposed by the backend
 - click `Set Active`
 - use `Sync Credentials` to refresh the safe status from the backend
 
-The backend currently exposes the active safe credential id, configured status, and credential count through `sync_state` and `get_credentials_status`. When the backend does not expose a full safe ID list, the credential field remains editable so the operator can enter a known `credential_id`. The frontend sends that value through `set_active_credential` and waits for the backend response; it never reads API keys, service-account JSON, local credential files, fallback policy, or secret values.
+The backend exposes the active safe credential id, configured status, credential count, and a safe credential list through both `sync_state` and `get_credentials_status`. Each listed credential contains only safe metadata such as `credential_id`, `label`, `source_type`, and `is_active`.
+
+The credential selector is read-only and is populated from that backend payload. The frontend sends the chosen `credential_id` through `set_active_credential` and waits for the backend response; it never reads API keys, service-account JSON, local credential files, fallback policy, or secret values.
 
 ## Ubuntu Install From `.deb`
 
@@ -181,7 +183,7 @@ Supported service variables:
 - `GOOGLE_API_KEY` for `google_ai`
 - `GOOGLE_APPLICATION_CREDENTIALS` for `vertex_ai`
 - `VERTEXAI_PROJECT` for `vertex_ai`
-- `VERTEXAI_LOCATION` for `vertex_ai`
+- `VERTEXAI_LOCATION=us-east5` for `vertex_ai`
 - `MARK_STATE_DIR=/var/lib/jarvis-mark/estado`
 - `MARK_LOG_DIR=/var/log/jarvis`
 
@@ -191,10 +193,34 @@ Example:
 GOOGLE_API_KEY=your-api-key-here
 GOOGLE_APPLICATION_CREDENTIALS=/etc/mark-core-v2/vertex-credentials.json
 VERTEXAI_PROJECT=your-project-id
-VERTEXAI_LOCATION=us-central1
+VERTEXAI_LOCATION=us-east5
 ```
 
-For Vertex AI through `systemd`, the service-account JSON file must be readable by the `jarvis` service user. A path under `/etc/mark-core-v2/` with restricted permissions is the intended operational shape.
+For Vertex AI through `systemd`, the service-account JSON file must be readable by the `jarvis` service user. A path under `/etc/mark-core-v2/` with restricted permissions is the intended operational shape. The expected regional API endpoint for the official location is `us-east5-aiplatform.googleapis.com`; this endpoint is configuration metadata, not a secret.
+
+## Official Builtin Models
+
+The backend is the source of truth for builtin model selection. The frontend reads these IDs from `get_models` and `sync_state`; it does not maintain its own catalog.
+
+Default startup model:
+
+- `gemini/gemini-3.1-pro-preview-customtools`
+
+Builtin `google_ai` models using `GOOGLE_API_KEY`:
+
+- `gemini/gemini-3.1-pro-preview-customtools`
+- `gemini/gemini-3.1-pro-preview`
+- `gemini/gemini-3-flash-preview`
+- `gemini/gemini-3.1-flash-lite-preview`
+- `gemini/gemini-2.5-pro`
+
+Builtin `vertex_ai` models using `GOOGLE_APPLICATION_CREDENTIALS`, `VERTEXAI_PROJECT`, and `VERTEXAI_LOCATION=us-east5`:
+
+- `vertex_ai/meta/llama-4-maverick-17b-128e-instruct-maas`
+- `vertex_ai/meta/llama-4-scout-17b-16e-instruct-maas`
+- `vertex_ai/google/gemini-3.1-pro-preview`
+- `vertex_ai/google/gemini-3.1-pro-preview-customtools`
+- `vertex_ai/google/gemini-3-pro-preview`
 
 Start and enable the backend:
 
@@ -273,7 +299,7 @@ These are the runtime variables the backend is expected to use:
 - `GOOGLE_API_KEY` for Google AI API
 - `GOOGLE_APPLICATION_CREDENTIALS` for Vertex AI service account credentials
 - `VERTEXAI_PROJECT` for the Vertex AI project id
-- `VERTEXAI_LOCATION` for the Vertex AI region/location
+- `VERTEXAI_LOCATION=us-east5` for the official Vertex AI region/location
 - `MARK_STATE_DIR` to override the writable runtime directory
 
 ## Runtime Path Behavior
@@ -336,8 +362,9 @@ Credential selection behavior:
 
 - `set_active_credential` updates the active credential per provider and persists it to the runtime store
 - the active credential survives backend restarts because it is stored in the provider-specific credential files
-- `get_credentials_status` only returns safe metadata, never API keys, tokens, or service-account JSON content
-- the frontend can request a manual active-credential change by provider and safe `credential_id`, but the backend remains the source of truth for validation and persistence
+- `get_credentials_status` and `sync_state` return only safe credential metadata: `credential_id`, `label`, `source_type`, and `is_active`
+- the frontend can request a manual active-credential change by provider and safe `credential_id`, but the backend remains the source of truth for validation, persistence, fallback, and execution
+- neither protocol path returns API keys, tokens, service-account JSON content, or full service-account file content
 
 `change_provider` now fails with structured error when the target provider has no configured credential.
 
@@ -552,7 +579,7 @@ Supported variables used by the service:
 - `GOOGLE_API_KEY`
 - `GOOGLE_APPLICATION_CREDENTIALS`
 - `VERTEXAI_PROJECT`
-- `VERTEXAI_LOCATION`
+- `VERTEXAI_LOCATION=us-east5`
 
 Example:
 
@@ -561,7 +588,7 @@ Example:
 GOOGLE_API_KEY=your-api-key-here
 GOOGLE_APPLICATION_CREDENTIALS=/etc/mark-core-v2/vertex-credentials.json
 VERTEXAI_PROJECT=your-project-id
-VERTEXAI_LOCATION=us-central1
+VERTEXAI_LOCATION=us-east5
 ```
 
 `EnvironmentFile=-/etc/mark-core-v2/environment` is loaded automatically on service start.

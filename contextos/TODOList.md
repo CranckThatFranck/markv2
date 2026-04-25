@@ -187,6 +187,10 @@
 - Atualizar o README com o uso real do frontend Ubuntu refinado, incluindo estados de task, credencial ativa segura e ações operacionais disponíveis.
 - Implementar troca manual de credencial ativa no frontend Ubuntu usando `set_active_credential`, metadados seguros de `sync_state/get_credentials_status`, feedback de sucesso/erro e atualização da UI sem reiniciar.
 - Atualizar o README com o uso real da troca manual de credencial ativa no frontend Ubuntu, sem exposição de segredos e sem duplicar política do backend.
+- Consolidar no backend o catálogo oficial builtin de modelos `google_ai` e `vertex_ai`, com `gemini/gemini-3.1-pro-preview-customtools` como modelo padrão de inicialização.
+- Expor pelo backend a lista segura de credenciais por provider em `sync_state` e `get_credentials_status`, somente com metadados seguros.
+- Adaptar o frontend Ubuntu para consumir do backend o catálogo de modelos e a lista segura de credenciais, com seleção read-only e destaque da credencial ativa.
+- Validar localmente via `.deb` instalado: backend `systemd`, frontend instalado, catálogo builtin oficial, credenciais seguras, troca manual de credencial, troca de modelo, inferência real em `google_ai`, inferência real em `vertex_ai` e erro legível para seleção inválida.
 ## A fazer
 
 ### Preparação e coerência documental do v2
