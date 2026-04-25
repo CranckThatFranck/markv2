@@ -133,49 +133,93 @@ Current frontend behavior:
 
 The frontend does not persist operational state on its own. Session, history, provider, model, and credential status continue to come from the backend.
 
-## Build and Install the Packaged Frontend
+## Ubuntu Install From `.deb`
 
-The frontend package is kept separate from the backend package because the desktop client can point to the local backend or to another host in the future.
+The current product path is Ubuntu-first: install the backend service and the desktop frontend from separate `.deb` packages. The backend owns session, history, providers, models, credentials and execution. The frontend is a client for viewing and controlling that backend.
 
-Frontend artifacts are generated in:
-
-- `.deb`: `packaging/dist/mark-core-v2-frontend_0.1.0-1_all.deb`
-- `.rpm`: `packaging/dist/mark-core-v2-frontend-0.1.0-1.noarch.rpm`
-
-Build commands:
+Install host prerequisites on a fresh Ubuntu host:
 
 ```bash
-cd packaging
-bash build-frontend-deb.sh
-bash build-frontend-rpm.sh
+sudo bash scripts/install-prereqs-ubuntu.sh
 ```
 
-Install on Ubuntu/Debian:
+Build the backend and frontend packages:
 
 ```bash
+bash packaging/build-deb.sh
+bash packaging/build-frontend-deb.sh
+```
+
+Install them:
+
+```bash
+sudo dpkg -i packaging/dist/mark-core-v2_0.1.0-1_all.deb
 sudo dpkg -i packaging/dist/mark-core-v2-frontend_0.1.0-1_all.deb
 ```
 
-Install on Fedora/RPM hosts:
+Configure provider credentials before real model inference:
 
 ```bash
-sudo rpm -i packaging/dist/mark-core-v2-frontend-0.1.0-1.noarch.rpm
+sudo nano /etc/mark-core-v2/environment
 ```
 
-Installed frontend paths:
+Supported service variables:
 
-- application code: `/opt/jarvis/frontend`
-- launcher: `/usr/bin/mark-core-v2-frontend`
-- desktop entry: `/usr/share/applications/mark-core-v2-frontend.desktop`
-- icon: `/usr/share/icons/hicolor/scalable/apps/mark-core-v2-frontend.svg`
+- `GOOGLE_API_KEY` for `google_ai`
+- `GOOGLE_APPLICATION_CREDENTIALS` for `vertex_ai`
+- `VERTEXAI_PROJECT` for `vertex_ai`
+- `VERTEXAI_LOCATION` for `vertex_ai`
+- `MARK_STATE_DIR=/var/lib/jarvis-mark/estado`
+- `MARK_LOG_DIR=/var/log/jarvis`
 
-Open the installed app with:
+Example:
+
+```bash
+GOOGLE_API_KEY=your-api-key-here
+GOOGLE_APPLICATION_CREDENTIALS=/etc/mark-core-v2/vertex-credentials.json
+VERTEXAI_PROJECT=your-project-id
+VERTEXAI_LOCATION=us-central1
+```
+
+For Vertex AI through `systemd`, the service-account JSON file must be readable by the `jarvis` service user. A path under `/etc/mark-core-v2/` with restricted permissions is the intended operational shape.
+
+Start and enable the backend:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable mark-core-v2
+sudo systemctl restart mark-core-v2
+sudo systemctl status mark-core-v2 --no-pager
+```
+
+Validate the backend locally:
+
+```bash
+curl http://127.0.0.1:8000/health
+```
+
+Expected response:
+
+```json
+{"status":"ok","service":"mark-core-v2"}
+```
+
+Open the installed frontend from the application launcher or from a terminal:
 
 ```bash
 mark-core-v2-frontend
 ```
 
-The package creates `/opt/jarvis/frontend/.venv` during installation and installs the Python dependency from `requirements-frontend.txt`.
+Installed paths:
+
+- Backend code: `/opt/jarvis/backend`
+- Backend venv: `/opt/jarvis/backend/.venv`
+- Frontend code: `/opt/jarvis/frontend`
+- Frontend launcher: `/usr/bin/mark-core-v2-frontend`
+- Desktop entry: `/usr/share/applications/mark-core-v2-frontend.desktop`
+- Runtime state: `/var/lib/jarvis-mark/estado`
+- Logs: `/var/log/jarvis`
+- Service environment: `/etc/mark-core-v2/environment`
 
 ## Test the Current WebSocket
 
@@ -440,7 +484,7 @@ Current behavior:
 
 Mark Core v2 can run headlessly under `systemd` without any terminal session open.
 
-### Quick Start
+### Ubuntu Quick Start
 
 #### 1. Install the Service
 
@@ -449,40 +493,16 @@ Build and installation artifacts are kept in [`packaging/dist/`](/home/ubuntu/Do
 If the host does not already have the required system packages, install prerequisites first:
 
 ```bash
-# Ubuntu
 sudo bash scripts/install-prereqs-ubuntu.sh
-
-# Fedora
-sudo bash scripts/install-prereqs-fedora.sh
 ```
 
 Use the prerequisite scripts when:
-- you need to build `.deb` or `.rpm` artifacts on a fresh host
+- you need to build `.deb` artifacts on a fresh Ubuntu host
 - you want to guarantee Python 3.12 + packaging tools exist before installing or rebuilding the service
 
 Use the packages directly when:
 - the host already has the required system packages
 - you only need to install `mark-core-v2` from `packaging/dist/`
-
-**From source (recommended for development):**
-
-```bash
-cd /path/to/markv2
-sudo bash scripts/install-systemd.sh
-```
-
-This script:
-- Creates the `jarvis` system user
-- Copies backend code to `/opt/jarvis/backend`
-- Creates `/opt/jarvis/backend/.venv` in the final install path and installs backend dependencies
-- Installs `/etc/systemd/system/mark-core-v2.service`
-- Installs `/etc/mark-core-v2/environment`
-- Creates persistent directories:
-  - `/var/lib/jarvis-mark/estado` for runtime state, session and history
-  - `/var/log/jarvis` for persistent backend logs
-- Runs `systemctl daemon-reload`
-
-**From .deb (Debian/Ubuntu):**
 
 ```bash
 cd /path/to/markv2
@@ -490,30 +510,20 @@ bash packaging/build-deb.sh
 sudo dpkg -i packaging/dist/mark-core-v2_0.1.0-1_all.deb
 ```
 
-**From .rpm (Red Hat/CentOS/Fedora):**
-
-```bash
-cd /path/to/markv2
-bash packaging/build-rpm.sh
-sudo rpm -i packaging/dist/mark-core-v2-0.1.0-1.x86_64.rpm
-```
-
-On this Ubuntu host the `.rpm` build is supported directly by local `rpmbuild`; no container or Podman layer was needed.
+The package creates the `jarvis` system user, installs `/etc/systemd/system/mark-core-v2.service`, creates `/opt/jarvis/backend/.venv`, installs backend dependencies, prepares `/var/lib/jarvis-mark/estado` and `/var/log/jarvis`, and reloads `systemd`.
 
 #### 2. Host Prerequisites
 
 The generated packages install the backend files and systemd unit, but they still rely on host-level prerequisites:
 
 - Ubuntu runtime/install: `python3.12`, `python3.12-venv`, `systemd`
-- Ubuntu build: runtime prerequisites plus `rsync`, `fakeroot`, `dpkg-dev`, `rpm`
-- Fedora runtime/install: `python3.12`, `systemd`
-- Fedora build: runtime prerequisites plus `rsync`, `rpm-build`
+- Ubuntu frontend runtime/install: `python3-tk`
+- Ubuntu build: runtime prerequisites plus `rsync`, `fakeroot`, `dpkg-dev`
 
 Versioned helper scripts:
 
 ```bash
 scripts/install-prereqs-ubuntu.sh
-scripts/install-prereqs-fedora.sh
 ```
 
 #### 3. Configure Environment Variables
@@ -616,13 +626,14 @@ Local validation also confirmed a simple `execute_task` through the service with
 
 ## Frontend v2 Validation Status
 
-The minimal frontend v2 has been validated locally against the installed `mark-core-v2` systemd service with these real flows:
+The frontend v2 has been validated locally against the installed `mark-core-v2` systemd service with these real Ubuntu flows:
 
 - open the desktop application
 - connect to `ws://127.0.0.1:8000/ws`
 - receive `sync_state`
 - rehydrate persisted history
-- display safe credential status
+- display provider/model/mode/task state with clearer connected, reconnecting and disconnected feedback
+- display safe credential status without raw secret values
 - switch provider
 - switch model
 - execute `echo frontend smoke ok`
@@ -641,6 +652,7 @@ The packaged frontend was also validated locally after installation from `.deb` 
 - execute real inference via `vertex_ai` with final answer `verde`
 - switch provider and model from the installed app
 - reconnect without losing the backend session state
+- show first-run guidance when the active provider has no configured credential
 
 #### 6. Logs and Persistence
 
@@ -726,7 +738,7 @@ sudo rm -rf /opt/jarvis/backend /var/lib/jarvis-mark /var/log/jarvis /etc/mark-c
 
 ### Packaging
 
-See [packaging/README.md](packaging/README.md) for `.deb` and `.rpm` build details.
+See [packaging/README.md](packaging/README.md) for package layout details. This README intentionally documents the Ubuntu `.deb` path first.
 
 ## Working Notes
 

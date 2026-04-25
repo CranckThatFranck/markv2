@@ -180,6 +180,7 @@
 - Validar erro estruturado quando não houver fallback possível.
 - Refinar a UX operacional do frontend Ubuntu com feedback visual de conexão, backend ocupado/idle, histórico reidratado, mensagens de sistema/erro/status, provider/modelo ativo, credenciais seguras e aviso de primeira execução.
 - Remover pré-requisito RPM do script Ubuntu para manter a rodada sem frente Fedora/RPM.
+- Atualizar a documentação Ubuntu-first com pré-requisitos, instalação `.deb` backend/frontend, variáveis de ambiente, `systemctl`, logs, launcher e troubleshooting.
 ## A fazer
 
 ### Preparação e coerência documental do v2
