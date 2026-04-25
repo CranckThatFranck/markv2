@@ -36,12 +36,15 @@ class FrontendApp:
         self.host_var = tk.StringVar(value=self.preferences.backend_url)
         self.provider_choice = tk.StringVar(value="")
         self.model_choice = tk.StringVar(value="")
+        self.credential_provider_choice = tk.StringVar(value="")
+        self.credential_choice = tk.StringVar(value="")
         self.setup_notice = tk.StringVar(value="Conectando ao backend local...")
         self.session_summary = tk.StringVar(value="-")
 
         self.providers_payload: dict[str, Any] = {}
         self.models_payload: dict[str, Any] = {}
         self.credentials_status: dict[str, Any] = {}
+        self.credential_ids_by_provider: dict[str, list[str]] = {}
         self.current_history: list[dict[str, Any]] = []
         self.session_payload: dict[str, Any] = {}
         self.ui_queue: queue.Queue[tuple[str, Any]] = queue.Queue()
@@ -141,8 +144,34 @@ class FrontendApp:
         ttk.Button(ops, text="Reconnect", command=self.reconnect).grid(row=0, column=1, sticky="w", padx=(8, 0))
         ttk.Button(ops, text="Clear Session", command=self.clear_session).grid(row=0, column=2, sticky="w", padx=(8, 0))
 
+        credential_controls = ttk.LabelFrame(left, text="Credential Controls", padding=12)
+        credential_controls.grid(row=2, column=0, sticky="ew", pady=(12, 0))
+        credential_controls.columnconfigure(1, weight=1)
+
+        ttk.Label(credential_controls, text="Provider").grid(row=0, column=0, sticky="w")
+        self.credential_provider_combo = ttk.Combobox(
+            credential_controls,
+            textvariable=self.credential_provider_choice,
+            state="readonly",
+        )
+        self.credential_provider_combo.grid(row=0, column=1, sticky="ew", padx=(8, 0))
+        self.credential_provider_combo.bind("<<ComboboxSelected>>", self._on_credential_provider_selected)
+
+        ttk.Label(credential_controls, text="Credential ID").grid(row=1, column=0, sticky="w", pady=(8, 0))
+        self.credential_combo = ttk.Combobox(credential_controls, textvariable=self.credential_choice)
+        self.credential_combo.grid(row=1, column=1, sticky="ew", padx=(8, 0), pady=(8, 0))
+
+        credential_buttons = ttk.Frame(credential_controls)
+        credential_buttons.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(10, 0))
+        ttk.Button(credential_buttons, text="Set Active", command=self.set_active_credential).grid(
+            row=0, column=0, sticky="w"
+        )
+        ttk.Button(credential_buttons, text="Sync Credentials", command=self.refresh_credentials).grid(
+            row=0, column=1, sticky="w", padx=(8, 0)
+        )
+
         prompt_frame = ttk.LabelFrame(left, text="Execute Task", padding=12)
-        prompt_frame.grid(row=1, column=0, sticky="ew", pady=(12, 0))
+        prompt_frame.grid(row=3, column=0, sticky="ew", pady=(12, 0))
         prompt_frame.columnconfigure(0, weight=1)
 
         self.prompt_text = ScrolledText(prompt_frame, height=6, wrap=tk.WORD)
@@ -204,6 +233,11 @@ class FrontendApp:
         for action in ("get_status", "get_models", "get_providers", "get_credentials_status", "get_history"):
             self.client.send_action(action)
 
+    def refresh_credentials(self) -> None:
+        self.last_action.set("get_credentials_status")
+        self._append_log("Sincronizando estado seguro das credenciais.")
+        self.client.send_action("get_credentials_status")
+
     def execute_task(self) -> None:
         prompt = self.prompt_text.get("1.0", tk.END).strip()
         if not prompt:
@@ -223,6 +257,31 @@ class FrontendApp:
         self.last_action.set("clear_session")
         self._append_log("Solicitando limpeza da sessao no backend.")
         self.client.send_action("clear_session", {})
+
+    def set_active_credential(self) -> None:
+        provider = self.credential_provider_choice.get().strip()
+        credential_id = self.credential_choice.get().strip()
+        if provider not in self.credentials_status:
+            self._set_task_state("error")
+            self._append_log("ERROR  Selecione um provider de credencial valido.")
+            return
+        if not credential_id:
+            self._set_task_state("error")
+            self._append_log("ERROR  Informe um credential_id seguro para ativar.")
+            return
+        self.last_action.set(f"set_active_credential -> {provider}")
+        self._append_log(f"Solicitando credencial ativa {credential_id} para {provider}.")
+        self.client.send_action(
+            "set_active_credential",
+            {
+                "provider": provider,
+                "credential_id": credential_id,
+            },
+        )
+
+    def _on_credential_provider_selected(self, _event: object) -> None:
+        provider = self.credential_provider_choice.get().strip()
+        self._sync_credential_combo(provider)
 
     def _on_provider_selected(self, _event: object) -> None:
         provider = self.provider_choice.get().strip()
@@ -346,6 +405,8 @@ class FrontendApp:
                 self._set_task_state("interrupted")
             elif action in {"clear_session", "change_provider", "change_model"}:
                 self._set_task_state("idle")
+            elif action == "set_active_credential":
+                self._set_task_state("idle")
         else:
             self._set_task_state("error")
             self._append_log(
@@ -368,6 +429,14 @@ class FrontendApp:
             self.credentials_status = dict(data["credentials_status"])
             self._render_credentials()
             self._render_active_credential()
+            self._sync_credential_controls()
+        if action == "set_active_credential" and isinstance(data.get("credentials_status"), dict):
+            provider = str(data.get("provider", self.credential_provider_choice.get()))
+            self.credentials_status[provider] = dict(data["credentials_status"])
+            self._append_log(f"Credencial ativa atualizada para {provider}: {data.get('active_credential_id')}")
+            self._render_credentials()
+            self._render_active_credential()
+            self._sync_credential_controls()
 
     def _apply_sync_state(self, payload: dict[str, Any]) -> None:
         state = payload.get("state", {})
@@ -391,6 +460,7 @@ class FrontendApp:
         self._render_credentials()
         self._render_session()
         self._render_active_credential()
+        self._sync_credential_controls()
         self._render_setup_notice()
 
     def _render_history(self) -> None:
@@ -408,6 +478,7 @@ class FrontendApp:
     def _render_credentials(self) -> None:
         lines: list[str] = []
         active_provider = self.backend_provider.get()
+        self.credential_ids_by_provider = {}
         for provider in sorted(self.credentials_status):
             status = self.credentials_status.get(provider, {})
             if not isinstance(status, dict):
@@ -419,8 +490,15 @@ class FrontendApp:
             credential_count = status.get("credential_count", "-")
             if isinstance(available, list):
                 available_text = ", ".join(str(item) for item in available) or "-"
+                safe_ids = [str(item) for item in available if str(item).strip()]
             else:
                 available_text = str(available)
+                safe_ids = []
+            if active_credential != "-":
+                safe_ids.append(active_credential)
+            self.credential_ids_by_provider[provider] = sorted(set(safe_ids))
+            if available_text == "-" and safe_ids:
+                available_text = ", ".join(sorted(set(safe_ids))) + " (active id exposed)"
             lines.append(
                 f"{provider} ({marker})\n"
                 f"  status: {configured}\n"
@@ -429,6 +507,25 @@ class FrontendApp:
                 f"  safe ids: {available_text}"
             )
         self._set_text(self.credentials_text, "\n\n".join(lines) or "Nenhuma credencial reportada pelo backend.")
+
+    def _sync_credential_controls(self) -> None:
+        providers = sorted(self.credentials_status)
+        self.credential_provider_combo["values"] = providers
+        current_provider = self.credential_provider_choice.get().strip()
+        if current_provider not in providers:
+            current_provider = self.backend_provider.get() if self.backend_provider.get() in providers else (providers[0] if providers else "")
+            self.credential_provider_choice.set(current_provider)
+        self._sync_credential_combo(current_provider)
+
+    def _sync_credential_combo(self, provider: str) -> None:
+        safe_ids = self.credential_ids_by_provider.get(provider, [])
+        self.credential_combo["values"] = safe_ids
+        status = self.credentials_status.get(provider, {})
+        active = ""
+        if isinstance(status, dict):
+            active = str(status.get("active_credential_id") or "")
+        if active:
+            self.credential_choice.set(active)
 
     def _render_active_credential(self) -> None:
         active_provider = self.backend_provider.get()
