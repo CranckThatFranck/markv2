@@ -186,6 +186,7 @@
 - Refinar os controles funcionais do frontend Ubuntu com credencial ativa segura por provider, estados de task `idle/running/interrupted/error/reconnecting`, feedback de execução/interrupção/troca de provider/modelo, `clear_session`, sincronização e reconexão manual.
 - Atualizar o README com o uso real do frontend Ubuntu refinado, incluindo estados de task, credencial ativa segura e ações operacionais disponíveis.
 - Implementar troca manual de credencial ativa no frontend Ubuntu usando `set_active_credential`, metadados seguros de `sync_state/get_credentials_status`, feedback de sucesso/erro e atualização da UI sem reiniciar.
+- Atualizar o README com o uso real da troca manual de credencial ativa no frontend Ubuntu, sem exposição de segredos e sem duplicar política do backend.
 ## A fazer
 
 ### Preparação e coerência documental do v2

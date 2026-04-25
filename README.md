@@ -128,12 +128,23 @@ Current frontend behavior:
 - can reconnect to another backend host by editing the WebSocket URL in the window
 - reads the backend `sync_state` and keeps the backend as the operational source of truth
 - shows current backend status, task state, active provider, active model, mode, active task, active safe credential id, rehydrated history, session metadata, and safe credential status
-- supports `execute_task`, `interrupt`, `change_provider`, `change_model`, `clear_session`, manual state sync, and manual reconnect
+- supports `execute_task`, `interrupt`, `change_provider`, `change_model`, `set_active_credential`, `clear_session`, manual state sync, and manual reconnect
 - makes task states explicit for operation: `idle`, `running`, `interrupted`, `error`, and `reconnecting`
 - persists only local frontend preferences in `~/.config/mark-core-v2-frontend/preferences.json`
 
 The frontend does not persist operational state on its own. Session, history, provider, model, and credential status continue to come from the backend.
 It does not implement fallback, credential policy, safety checks, or task execution logic; those remain backend responsibilities.
+
+### Manual Credential Selection
+
+The Ubuntu frontend has a `Credential Controls` panel for manual active-credential changes:
+
+- choose the provider whose credential should change
+- choose or type a safe `credential_id`
+- click `Set Active`
+- use `Sync Credentials` to refresh the safe status from the backend
+
+The backend currently exposes the active safe credential id, configured status, and credential count through `sync_state` and `get_credentials_status`. When the backend does not expose a full safe ID list, the credential field remains editable so the operator can enter a known `credential_id`. The frontend sends that value through `set_active_credential` and waits for the backend response; it never reads API keys, service-account JSON, local credential files, fallback policy, or secret values.
 
 ## Ubuntu Install From `.deb`
 
@@ -326,6 +337,7 @@ Credential selection behavior:
 - `set_active_credential` updates the active credential per provider and persists it to the runtime store
 - the active credential survives backend restarts because it is stored in the provider-specific credential files
 - `get_credentials_status` only returns safe metadata, never API keys, tokens, or service-account JSON content
+- the frontend can request a manual active-credential change by provider and safe `credential_id`, but the backend remains the source of truth for validation and persistence
 
 `change_provider` now fails with structured error when the target provider has no configured credential.
 
@@ -636,6 +648,7 @@ The frontend v2 has been validated locally against the installed `mark-core-v2` 
 - rehydrate persisted history
 - display provider/model/mode/task state with clearer connected, reconnecting, interrupted, error and idle feedback
 - display the active safe credential id for the active provider without raw secret values
+- display safe credential status per provider and apply manual active-credential changes through `set_active_credential`
 - switch provider
 - switch model
 - execute a simple model task and show the final response clearly
@@ -655,6 +668,8 @@ The packaged frontend was also validated locally after installation from `.deb` 
 - execute real inference via `vertex_ai` with final answer `verde`
 - switch provider and model from the installed app
 - show active provider, active model, mode, task state and safe active credential id in the operational header
+- manually set active credentials for `google_ai` and `vertex_ai` using safe validation credential ids, then refresh the UI without restarting the app
+- show structured failure feedback for a nonexistent credential id without exposing secrets
 - reconnect without losing the backend session state
 - show first-run guidance when the active provider has no configured credential
 
