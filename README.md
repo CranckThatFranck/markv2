@@ -128,6 +128,9 @@ Current frontend behavior:
 - can reconnect to another backend host by editing the WebSocket URL in the window
 - reads the backend `sync_state` and keeps the backend as the operational source of truth
 - shows current backend status, task state, active provider, active model, mode, active task, active safe credential id, rehydrated history, session metadata, and safe credential status
+- groups the backend-provided model catalog by provider and marks the active model/provider
+- groups backend-provided safe credentials by provider and marks the active credential
+- translates common backend errors and provider fallback events into operational messages without owning fallback or safety decisions
 - supports `execute_task`, `interrupt`, `change_provider`, `change_model`, `set_active_credential`, `clear_session`, manual state sync, and manual reconnect
 - makes task states explicit for operation: `idle`, `running`, `interrupted`, `error`, and `reconnecting`
 - persists only local frontend preferences in `~/.config/mark-core-v2-frontend/preferences.json`
@@ -147,6 +150,19 @@ The Ubuntu frontend has a `Credential Controls` panel for manual active-credenti
 The backend exposes the active safe credential id, configured status, credential count, and a safe credential list through both `sync_state` and `get_credentials_status`. Each listed credential contains only safe metadata such as `credential_id`, `label`, `source_type`, and `is_active`.
 
 The credential selector is read-only and is populated from that backend payload. The frontend sends the chosen `credential_id` through `set_active_credential` and waits for the backend response; it never reads API keys, service-account JSON, local credential files, fallback policy, or secret values.
+
+### Model And Credential UX
+
+The Ubuntu frontend keeps selection operational rather than decorative:
+
+- `Model Controls` shows the active provider and only selectable model labels derived from the backend catalog for that provider
+- `Models By Provider` shows the full backend-provided model catalog grouped by provider, with the active model marked by `*`
+- `Credential Controls` shows safe credential labels derived from backend metadata for the selected provider
+- `Provider Credentials` groups safe credentials by provider, marks the active credential, and labels credential source as `environment` or `local store`
+- status cards keep provider, model, and active credential visible at the top of the window
+- operational errors such as missing credential, unknown model, backend failure, task already running, and fallback events are shown in the event log/status line with readable text
+
+The frontend does not infer whether a model should fallback, whether a credential is valid, or whether an action is safe. It only displays backend state and sends protocol actions.
 
 ## Ubuntu Install From `.deb`
 

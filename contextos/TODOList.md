@@ -191,6 +191,8 @@
 - Expor pelo backend a lista segura de credenciais por provider em `sync_state` e `get_credentials_status`, somente com metadados seguros.
 - Adaptar o frontend Ubuntu para consumir do backend o catálogo de modelos e a lista segura de credenciais, com seleção read-only e destaque da credencial ativa.
 - Validar localmente via `.deb` instalado: backend `systemd`, frontend instalado, catálogo builtin oficial, credenciais seguras, troca manual de credencial, troca de modelo, inferência real em `google_ai`, inferência real em `vertex_ai` e erro legível para seleção inválida.
+- Refinar a UX operacional do frontend Ubuntu para agrupar modelos e credenciais por provider, destacar provider/modelo/credencial ativos, traduzir erros/fallbacks em mensagens legíveis e manter a UI atualizada sem reinício.
+- Atualizar o README com o uso real da UX refinada de seleção de modelo e credencial no frontend Ubuntu.
 ## A fazer
 
 ### Preparação e coerência documental do v2
