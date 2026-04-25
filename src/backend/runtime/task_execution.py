@@ -95,8 +95,36 @@ class TaskExecutionService:
         status = self.credential_runtime.get_credentials_status().get(provider, {})
         return bool(status.get("configured"))
 
+    async def _safe_send_json(
+        self,
+        websocket: WebSocket,
+        payload: dict[str, object],
+        *,
+        task_id: str | None = None,
+    ) -> bool:
+        try:
+            await websocket.send_json(payload)
+            return True
+        except RuntimeError as exc:
+            self.backend_logger.log_error(
+                "WEBSOCKET_DISCONNECTED",
+                "Evento nao enviado porque o WebSocket foi encerrado.",
+                {"task_id": task_id, "detail": str(exc), "event_type": payload.get("type")},
+            )
+            return False
+
+    async def _safe_emit_state(self, emit_state: Callable[[], Awaitable[None]], task_id: str) -> None:
+        try:
+            await emit_state()
+        except RuntimeError as exc:
+            self.backend_logger.log_error(
+                "WEBSOCKET_DISCONNECTED",
+                "sync_state nao enviado porque o WebSocket foi encerrado.",
+                {"task_id": task_id, "detail": str(exc)},
+            )
+
     async def _send_provider_event(self, websocket: WebSocket, payload: dict[str, object]) -> None:
-        await websocket.send_json({"type": "provider_event", "protocol_version": "2.0", **payload})
+        await self._safe_send_json(websocket, {"type": "provider_event", "protocol_version": "2.0", **payload})
 
     async def _try_google_ai(self, prompt: str, model_id: str, api_key: str) -> tuple[bool, str, str]:
         result = await asyncio.to_thread(GoogleAIClient(api_key=api_key).generate_text, prompt, model_id)
@@ -339,13 +367,15 @@ class TaskExecutionService:
         websocket: WebSocket,
     ) -> tuple[bool, str, str]:
         async def emit_console(stream: str, content: str) -> None:
-            await websocket.send_json(
+            await self._safe_send_json(
+                websocket,
                 {
                     "type": "console",
                     "protocol_version": "2.0",
                     "stream": stream,
                     "content": content,
-                }
+                },
+                task_id=context.task_id,
             )
 
         # Extract rules from the initial_rules.txt and log application
@@ -371,20 +401,24 @@ class TaskExecutionService:
             tool_name = decision.tool_name or ""
             tool_input = decision.tool_input or {}
             command = str(tool_input.get("command", "")).strip()
-            await websocket.send_json(
+            await self._safe_send_json(
+                websocket,
                 {
                     "type": "code",
                     "protocol_version": "2.0",
                     "content": command,
                     "language": "bash",
-                }
+                },
+                task_id=context.task_id,
             )
-            await websocket.send_json(
+            await self._safe_send_json(
+                websocket,
                 {
                     "type": "system",
                     "protocol_version": "2.0",
                     "message": f"Executando ferramenta {tool_name}.",
-                }
+                },
+                task_id=context.task_id,
             )
 
             self._dispatch_task_id = context.task_id
@@ -399,12 +433,14 @@ class TaskExecutionService:
 
             if not bool(tool_result.get("ok")):
                 blocked_reason = str(tool_result.get("stderr") or "COMMAND_BLOCKED")
-                await websocket.send_json(
+                await self._safe_send_json(
+                    websocket,
                     {
                         "type": "system",
                         "protocol_version": "2.0",
                         "message": f"Execução bloqueada ou falhou na política de segurança/SSH: {blocked_reason}",
-                    }
+                    },
+                    task_id=context.task_id,
                 )
                 return (
                     False,
@@ -470,35 +506,43 @@ class TaskExecutionService:
         self.history_store.append_event(task_id, "system", "Task iniciada")
         self.history_store.append_event(task_id, "user", prompt)
 
-        await websocket.send_json(
+        await self._safe_send_json(
+            websocket,
             {
                 "type": "status",
                 "protocol_version": "2.0",
                 "phase": "START",
                 "action": "execute_task",
                 "task_id": task_id,
-            }
+            },
+            task_id=task_id,
         )
-        await websocket.send_json(
+        await self._safe_send_json(
+            websocket,
             {
                 "type": "user",
                 "protocol_version": "2.0",
                 "content": prompt,
-            }
+            },
+            task_id=task_id,
         )
-        await websocket.send_json(
+        await self._safe_send_json(
+            websocket,
             {
                 "type": "system",
                 "protocol_version": "2.0",
                 "message": "Regras iniciais carregadas para a task.",
-            }
+            },
+            task_id=task_id,
         )
-        await websocket.send_json(
+        await self._safe_send_json(
+            websocket,
             {
                 "type": "message",
                 "protocol_version": "2.0",
                 "content": f"Executando task controlada com base em {self.rules_file}.",
-            }
+            },
+            task_id=task_id,
         )
 
         async def _run() -> None:
@@ -509,28 +553,32 @@ class TaskExecutionService:
                 ok, code, output = await self._run_agent_loop(self._active_context, websocket)
                 if not ok:
                     self.history_store.append_event(task_id, "system", f"Provider error {code}: {output}")
-                    await websocket.send_json(
+                    await self._safe_send_json(
+                        websocket,
                         error_response(
                             action="execute_task",
                             error_code=code,
                             message=output,
-                        ).model_dump()
+                        ).model_dump(),
+                        task_id=task_id,
                     )
-                    await websocket.send_json(
+                    await self._safe_send_json(
+                        websocket,
                         {
                             "type": "status",
                             "protocol_version": "2.0",
                             "phase": "END",
                             "action": "execute_task",
                             "task_id": task_id,
-                        }
+                        },
+                        task_id=task_id,
                     )
                     self.state_manager.set_status("idle")
                     self.state_manager.set_active_task(None)
                     self.state_manager.bump_history_revision()
                     self.history_store.bump_history_revision()
                     self.session_store.set_idle_session(self.state_manager.state.history_revision, last_task_id=task_id)
-                    await emit_state()
+                    await self._safe_emit_state(emit_state, task_id)
                     return
 
                 final_message = output
@@ -540,30 +588,36 @@ class TaskExecutionService:
                 self.state_manager.bump_history_revision()
                 self.history_store.bump_history_revision()
                 self.session_store.set_idle_session(self.state_manager.state.history_revision, last_task_id=task_id)
-                await websocket.send_json(
+                await self._safe_send_json(
+                    websocket,
                     {
                         "type": "message",
                         "protocol_version": "2.0",
                         "content": final_message,
-                    }
+                    },
+                    task_id=task_id,
                 )
-                await websocket.send_json(
+                await self._safe_send_json(
+                    websocket,
                     {
                         "type": "system",
                         "protocol_version": "2.0",
                         "message": "Task finalizada.",
-                    }
+                    },
+                    task_id=task_id,
                 )
-                await websocket.send_json(
+                await self._safe_send_json(
+                    websocket,
                     {
                         "type": "status",
                         "protocol_version": "2.0",
                         "phase": "END",
                         "action": "execute_task",
                         "task_id": task_id,
-                    }
+                    },
+                    task_id=task_id,
                 )
-                await emit_state()
+                await self._safe_emit_state(emit_state, task_id)
             finally:
                 self._active_context = None
                 self._active_task = None
@@ -604,21 +658,25 @@ class TaskExecutionService:
         self._active_context = None
         self._active_task = None
 
-        await websocket.send_json(
+        await self._safe_send_json(
+            websocket,
             {
                 "type": "system",
                 "protocol_version": "2.0",
                 "message": f"Task {task_id} interrompida.",
-            }
+            },
+            task_id=task_id,
         )
-        await websocket.send_json(
+        await self._safe_send_json(
+            websocket,
             {
                 "type": "status",
                 "protocol_version": "2.0",
                 "phase": "END",
                 "action": "interrupt",
                 "task_id": task_id,
-            }
+            },
+            task_id=task_id,
         )
         return success_response(
             "interrupt",
@@ -641,12 +699,14 @@ class TaskExecutionService:
         self.state_manager.bump_history_revision()
         self.history_store.bump_history_revision()
         self.session_store.set_idle_session(self.state_manager.state.history_revision, last_task_id=last_task_id)
-        await websocket.send_json(
+        await self._safe_send_json(
+            websocket,
             {
                 "type": "system",
                 "protocol_version": "2.0",
                 "message": "Shutdown solicitado.",
-            }
+            },
+            task_id=last_task_id,
         )
         return success_response(
             "shutdown_backend",
@@ -670,12 +730,14 @@ class TaskExecutionService:
         self.history_store.clear()
         self.history_store.sync_history_revision(new_revision)
         self.session_store.set_idle_session(new_revision, last_task_id=last_task_id)
-        await websocket.send_json(
+        await self._safe_send_json(
+            websocket,
             {
                 "type": "system",
                 "protocol_version": "2.0",
                 "message": "Sessao limpa.",
-            }
+            },
+            task_id=last_task_id,
         )
         return success_response(
             "clear_session",
