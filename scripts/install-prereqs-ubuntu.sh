@@ -16,7 +16,6 @@ apt-get install -y \
     python3-tk \
     rsync \
     fakeroot \
-    dpkg-dev \
-    rpm
+    dpkg-dev
 
 echo "Ubuntu prerequisites installed."

@@ -159,15 +159,13 @@ sudo systemctl start mark-core-v2
 
 ## What The Packages Do Not Install Automatically
 
-The service packages still depend on host-level prerequisites:
+The Ubuntu `.deb` service and frontend packages still depend on host-level prerequisites:
 
 - Debian/Ubuntu install path needs `python3.12` and `python3.12-venv`
 - Debian/Ubuntu frontend path also needs `python3-tk`
-- Fedora/RPM install path needs `python3.12`
-- Fedora/RPM frontend path also needs `python3-tkinter`
-- Build hosts also need packaging tools such as `fakeroot`, `dpkg-dev`, `rpm-build`, and `rsync`
+- Ubuntu build hosts also need packaging tools such as `fakeroot`, `dpkg-dev`, and `rsync`
 
-If those are missing, use the helper scripts in `scripts/` before building or installing.
+If those are missing, use `scripts/install-prereqs-ubuntu.sh` before building or installing on Ubuntu.
 
 ## Environment Configuration
 

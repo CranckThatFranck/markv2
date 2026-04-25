@@ -179,6 +179,7 @@
 - Validar emissão de `provider_event` para fallback.
 - Validar erro estruturado quando não houver fallback possível.
 - Refinar a UX operacional do frontend Ubuntu com feedback visual de conexão, backend ocupado/idle, histórico reidratado, mensagens de sistema/erro/status, provider/modelo ativo, credenciais seguras e aviso de primeira execução.
+- Remover pré-requisito RPM do script Ubuntu para manter a rodada sem frente Fedora/RPM.
 ## A fazer
 
 ### Preparação e coerência documental do v2
