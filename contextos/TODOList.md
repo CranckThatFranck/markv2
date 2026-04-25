@@ -178,6 +178,7 @@
 - Validar fallback de modelo no mesmo provider.
 - Validar emissão de `provider_event` para fallback.
 - Validar erro estruturado quando não houver fallback possível.
+- Refinar a UX operacional do frontend Ubuntu com feedback visual de conexão, backend ocupado/idle, histórico reidratado, mensagens de sistema/erro/status, provider/modelo ativo, credenciais seguras e aviso de primeira execução.
 ## A fazer
 
 ### Preparação e coerência documental do v2

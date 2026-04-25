@@ -33,6 +33,8 @@ class FrontendApp:
         self.host_var = tk.StringVar(value=self.preferences.backend_url)
         self.provider_choice = tk.StringVar(value="")
         self.model_choice = tk.StringVar(value="")
+        self.setup_notice = tk.StringVar(value="Conectando ao backend local...")
+        self.session_summary = tk.StringVar(value="-")
 
         self.providers_payload: dict[str, Any] = {}
         self.models_payload: dict[str, Any] = {}
@@ -53,6 +55,14 @@ class FrontendApp:
         self.client.start()
 
     def _build_ui(self) -> None:
+        style = ttk.Style(self.root)
+        style.configure("Connected.TLabel", foreground="#137333", font=("", 10, "bold"))
+        style.configure("Connecting.TLabel", foreground="#8a5a00", font=("", 10, "bold"))
+        style.configure("Disconnected.TLabel", foreground="#b3261e", font=("", 10, "bold"))
+        style.configure("Idle.TLabel", foreground="#137333", font=("", 10, "bold"))
+        style.configure("Busy.TLabel", foreground="#8a5a00", font=("", 10, "bold"))
+        style.configure("Error.TLabel", foreground="#b3261e")
+
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(2, weight=1)
 
@@ -63,7 +73,8 @@ class FrontendApp:
         ttk.Label(top, text="Backend WS").grid(row=0, column=0, sticky="w")
         ttk.Entry(top, textvariable=self.host_var).grid(row=0, column=1, sticky="ew", padx=(8, 8))
         ttk.Button(top, text="Reconnect", command=self.reconnect).grid(row=0, column=2, padx=(0, 8))
-        ttk.Label(top, textvariable=self.connection_state).grid(row=0, column=3, sticky="e")
+        self.connection_label = ttk.Label(top, textvariable=self.connection_state, style="Disconnected.TLabel")
+        self.connection_label.grid(row=0, column=3, sticky="e")
 
         status = ttk.LabelFrame(self.root, text="Operational State", padding=12)
         status.grid(row=1, column=0, sticky="ew", padx=12)
@@ -71,7 +82,8 @@ class FrontendApp:
             status.columnconfigure(index, weight=1)
 
         ttk.Label(status, text="Backend").grid(row=0, column=0, sticky="w")
-        ttk.Label(status, textvariable=self.backend_status).grid(row=1, column=0, sticky="w")
+        self.backend_status_label = ttk.Label(status, textvariable=self.backend_status, style="Error.TLabel")
+        self.backend_status_label.grid(row=1, column=0, sticky="w")
         ttk.Label(status, text="Provider").grid(row=0, column=1, sticky="w")
         ttk.Label(status, textvariable=self.backend_provider).grid(row=1, column=1, sticky="w")
         ttk.Label(status, text="Model").grid(row=0, column=2, sticky="w")
@@ -80,6 +92,9 @@ class FrontendApp:
         ttk.Label(status, textvariable=self.backend_mode).grid(row=1, column=3, sticky="w")
         ttk.Label(status, text="Active Task").grid(row=0, column=4, sticky="w")
         ttk.Label(status, textvariable=self.active_task_id).grid(row=1, column=4, sticky="w")
+        ttk.Label(status, textvariable=self.setup_notice, justify=tk.LEFT).grid(
+            row=2, column=0, columnspan=5, sticky="ew", pady=(10, 0)
+        )
 
         body = ttk.Panedwindow(self.root, orient=tk.HORIZONTAL)
         body.grid(row=2, column=0, sticky="nsew", padx=12, pady=(12, 0))
@@ -126,14 +141,14 @@ class FrontendApp:
         self.stream_log = ScrolledText(left, height=22, wrap=tk.WORD, state=tk.DISABLED)
         self.stream_log.grid(row=5, column=0, sticky="nsew", pady=(12, 0))
 
-        history_frame = ttk.LabelFrame(right, text="History Rehydrated", padding=8)
+        history_frame = ttk.LabelFrame(right, text="Rehydrated History", padding=8)
         history_frame.grid(row=0, column=0, sticky="nsew")
         history_frame.columnconfigure(0, weight=1)
         history_frame.rowconfigure(0, weight=1)
         self.history_text = ScrolledText(history_frame, wrap=tk.WORD, state=tk.DISABLED)
         self.history_text.grid(row=0, column=0, sticky="nsew")
 
-        creds_frame = ttk.LabelFrame(right, text="Credentials Status", padding=8)
+        creds_frame = ttk.LabelFrame(right, text="Provider Credentials", padding=8)
         creds_frame.grid(row=1, column=0, sticky="nsew", pady=(12, 0))
         creds_frame.columnconfigure(0, weight=1)
         creds_frame.rowconfigure(0, weight=1)
@@ -143,7 +158,7 @@ class FrontendApp:
         session_frame = ttk.LabelFrame(right, text="Session", padding=8)
         session_frame.grid(row=2, column=0, sticky="ew", pady=(12, 0))
         session_frame.columnconfigure(0, weight=1)
-        self.session_label = ttk.Label(session_frame, text="-", justify=tk.LEFT)
+        self.session_label = ttk.Label(session_frame, textvariable=self.session_summary, justify=tk.LEFT)
         self.session_label.grid(row=0, column=0, sticky="w")
 
         self.events_label = ttk.Label(self.root, text="Ready", anchor="w")
@@ -159,6 +174,7 @@ class FrontendApp:
             return
         self.preferences.backend_url = url
         save_preferences(self.preferences)
+        self._append_log(f"Reconectando em {url}")
         self.client.update_url(url)
 
     def refresh_state(self) -> None:
@@ -211,14 +227,32 @@ class FrontendApp:
         self.root.after(100, self._drain_ui_queue)
 
     def _handle_connection_state(self, state: str) -> None:
-        self.connection_state.set(state)
-        self.events_label.config(text=f"Connection: {state}")
+        labels = {
+            "connected": "connected",
+            "connecting": "connecting...",
+            "disconnected": "disconnected",
+        }
+        styles = {
+            "connected": "Connected.TLabel",
+            "connecting": "Connecting.TLabel",
+            "disconnected": "Disconnected.TLabel",
+        }
+        self.connection_state.set(labels.get(state, state))
+        self.connection_label.configure(style=styles.get(state, "Disconnected.TLabel"))
+        if state == "connected":
+            self.events_label.config(text=f"Connected to {self.host_var.get().strip()}")
+        elif state == "connecting":
+            self.events_label.config(text=f"Connecting to {self.host_var.get().strip()}")
+        else:
+            self.events_label.config(text="Backend disconnected; reconnect is automatic.")
+            self._render_setup_notice()
 
     def _handle_event(self, event: dict[str, Any]) -> None:
         event_type = event.get("type", "unknown")
         if event_type == "sync_state":
             self._apply_sync_state(event)
-            self._append_log("sync_state recebido.")
+            revision = event.get("state", {}).get("history_revision", "-")
+            self._append_log(f"sync_state recebido; history_revision={revision}.")
             return
 
         if event_type == "action_response":
@@ -226,31 +260,31 @@ class FrontendApp:
             return
 
         if event_type == "system":
-            self._append_log(f"SYSTEM: {event.get('message', '')}")
+            self._append_log(f"SYSTEM  {event.get('message', '')}")
             return
 
         if event_type == "status":
-            self._append_log(f"STATUS {event.get('phase')} {event.get('action')} task={event.get('task_id')}")
+            self._append_log(f"STATUS  {event.get('phase')} {event.get('action')} task={event.get('task_id')}")
             return
 
         if event_type == "message":
-            self._append_log(f"MESSAGE: {event.get('content', '')}")
+            self._append_log(f"ASSISTANT  {event.get('content', '')}")
             return
 
         if event_type == "user":
-            self._append_log(f"USER: {event.get('content', '')}")
+            self._append_log(f"USER  {event.get('content', '')}")
             return
 
         if event_type == "code":
-            self._append_log(f"CODE: {event.get('content', '')}")
+            self._append_log(f"CODE  {event.get('content', '')}")
             return
 
         if event_type == "console":
-            self._append_log(f"CONSOLE[{event.get('stream', 'stdout')}]: {event.get('content', '')}")
+            self._append_log(f"CONSOLE/{event.get('stream', 'stdout')}  {event.get('content', '')}")
             return
 
         if event_type == "provider_event":
-            self._append_log(f"PROVIDER_EVENT: {json.dumps(event, ensure_ascii=False)}")
+            self._append_log(f"PROVIDER  {json.dumps(event, ensure_ascii=False)}")
             return
 
         self._append_log(f"EVENT {event_type}: {json.dumps(event, ensure_ascii=False)}")
@@ -259,10 +293,10 @@ class FrontendApp:
         action = event.get("action", "unknown")
         success = bool(event.get("success"))
         if success:
-            self._append_log(f"ACTION_RESPONSE ok: {action}")
+            self._append_log(f"OK  {action}")
         else:
             self._append_log(
-                f"ACTION_RESPONSE error: {action} {event.get('error_code', '')} {event.get('message', '')}".strip()
+                f"ERROR  {action} {event.get('error_code', '')} {event.get('message', '')}".strip()
             )
 
         data = event.get("data", {})
@@ -286,6 +320,7 @@ class FrontendApp:
         self.backend_model.set(str(state.get("model", "-")))
         self.backend_mode.set(str(state.get("mode", "-")))
         self.active_task_id.set(str(state.get("active_task_id") or "-"))
+        self._style_backend_status(self.backend_status.get())
 
         available_providers = list(self.providers_payload.get("available", []))
         self.provider_combo["values"] = available_providers
@@ -298,6 +333,7 @@ class FrontendApp:
         self._render_history()
         self._render_credentials()
         self._render_session()
+        self._render_setup_notice()
 
     def _render_history(self) -> None:
         lines: list[str] = []
@@ -306,26 +342,91 @@ class FrontendApp:
             task_id = str(item.get("task_id", "-"))
             event_type = str(item.get("event_type", "-"))
             content = str(item.get("content", ""))
-            lines.append(f"{created_at} [{task_id}] {event_type}: {content}")
-        self._set_text(self.history_text, "\n".join(lines))
+            prefix = self._history_prefix(event_type)
+            task_suffix = f" task={task_id}" if task_id and task_id != "-" else ""
+            lines.append(f"{created_at}  {prefix}{task_suffix}\n{content}\n")
+        self._set_text(self.history_text, "\n".join(lines).strip() or "Sem historico reidratado ainda.")
 
     def _render_credentials(self) -> None:
-        self._set_text(self.credentials_text, json.dumps(self.credentials_status, ensure_ascii=False, indent=2))
+        lines: list[str] = []
+        active_provider = self.backend_provider.get()
+        for provider in sorted(self.credentials_status):
+            status = self.credentials_status.get(provider, {})
+            if not isinstance(status, dict):
+                continue
+            marker = "active" if provider == active_provider else "available"
+            configured = "configured" if status.get("configured") else "missing"
+            active_credential = status.get("active_credential_id") or "-"
+            available = status.get("available_credential_ids") or []
+            if isinstance(available, list):
+                available_text = ", ".join(str(item) for item in available) or "-"
+            else:
+                available_text = str(available)
+            lines.append(
+                f"{provider} ({marker})\n"
+                f"  status: {configured}\n"
+                f"  active credential: {active_credential}\n"
+                f"  safe ids: {available_text}"
+            )
+        self._set_text(self.credentials_text, "\n\n".join(lines) or "Nenhuma credencial reportada pelo backend.")
 
     def _render_session(self) -> None:
         active_session = self.session_payload.get("active_session")
         metadata = self.session_payload.get("metadata", {})
         if active_session:
             text = (
-                f"Active session\n"
+                f"Active task\n"
                 f"task_id: {active_session.get('task_id')}\n"
                 f"status: {active_session.get('status')}\n"
                 f"prompt: {active_session.get('prompt')}\n"
                 f"rules_file: {active_session.get('rules_file')}"
             )
         else:
-            text = f"Idle session\nmetadata: {json.dumps(metadata, ensure_ascii=False)}"
-        self.session_label.config(text=text)
+            text = (
+                "Idle\n"
+                f"provider: {self.backend_provider.get()}\n"
+                f"model: {self.backend_model.get()}\n"
+                f"metadata: {json.dumps(metadata, ensure_ascii=False)}"
+            )
+        self.session_summary.set(text)
+
+    def _render_setup_notice(self) -> None:
+        active_provider = self.backend_provider.get()
+        active_model = self.backend_model.get()
+        provider_status = self.credentials_status.get(active_provider, {})
+        if self.connection_state.get().startswith("disconnected"):
+            self.setup_notice.set("Backend local indisponivel. Verifique o host acima ou o servico mark-core-v2.")
+            return
+        if isinstance(provider_status, dict) and not provider_status.get("configured"):
+            self.setup_notice.set(
+                f"Provider ativo sem credencial configurada: {active_provider}. "
+                "Configure /etc/mark-core-v2/environment e reinicie o servico."
+            )
+            return
+        self.setup_notice.set(
+            f"Backend: {self.host_var.get().strip()} | Provider ativo: {active_provider} | Modelo ativo: {active_model}"
+        )
+
+    def _style_backend_status(self, status: str) -> None:
+        if status == "idle":
+            self.backend_status_label.configure(style="Idle.TLabel")
+        elif status in {"running", "busy"}:
+            self.backend_status_label.configure(style="Busy.TLabel")
+        else:
+            self.backend_status_label.configure(style="Error.TLabel")
+
+    def _history_prefix(self, event_type: str) -> str:
+        prefixes = {
+            "user": "USER",
+            "message": "ASSISTANT",
+            "system": "SYSTEM",
+            "status": "STATUS",
+            "console": "CONSOLE",
+            "code": "CODE",
+            "error": "ERROR",
+            "provider_event": "PROVIDER",
+        }
+        return prefixes.get(event_type, event_type.upper())
 
     def _append_log(self, message: str) -> None:
         timestamp = datetime.now().strftime("%H:%M:%S")
